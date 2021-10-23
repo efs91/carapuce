@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship, declarative_base
 HOST = "0.0.0.0"
 PORT = 5000
 
-DB_HOST = "efs91.fr"
+DB_HOST = "localhost"
 DB_USER = "carapuce"
 DB_PASS = "sbirneb91"
 DB_DATABASE = "carapuce"
