@@ -9,7 +9,6 @@ import json
 from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship, declarative_base
 
-
 # Config
 HOST = "0.0.0.0"
 PORT = 5000
@@ -23,19 +22,19 @@ DB_DATABASE = "carapuce"
 app = flask.Flask(__name__)
 app.config["DEBUG"] = True
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://'+DB_USER+':'+DB_PASS+'@'+DB_HOST+'/'+DB_DATABASE
+app.config["SQLALCHEMY_DATABASE_URI"] = 'mysql://' + DB_USER + ':' + DB_PASS + '@' + DB_HOST + '/' + DB_DATABASE
 db = SQLAlchemy(app)
-
-
 
 # Orm
 Base = declarative_base()
+
 
 class Arbitre(Base):
     __tablename__ = "arbitre"
     id = Column(Integer, primary_key=True)
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     edition_id = Column(Integer, ForeignKey('edition.id'))
+
 
 class ClassementGroupe(Base):
     __tablename__ = "classement_groupe"
@@ -45,6 +44,7 @@ class ClassementGroupe(Base):
     nb_kills = Column(Integer)
     nb_morts = Column(Integer)
     nb_points = Column(Integer)
+
 
 class ClassementPartie(Base):
     __tablename__ = "classement_partie"
@@ -56,7 +56,6 @@ class ClassementPartie(Base):
     nb_kills = Column(Integer)
     nb_morts = Column(Integer)
     nb_points = Column(Integer)
-    
 
 
 class Edition(Base):
@@ -66,6 +65,7 @@ class Edition(Base):
     label = Column(String)
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
+
 
 class Elimination(Base):
     __tablename__ = "elimination"
@@ -81,9 +81,9 @@ class Elimination(Base):
 
 
 groupe_joueur_table = Table('groupe_joueur', Base.metadata,
-    Column('groupe_id', ForeignKey('groupe.id'), primary_key=True),
-    Column('joueur_id', ForeignKey('joueur.id'), primary_key=True)
-)
+                            Column('groupe_id', ForeignKey('groupe.id'), primary_key=True),
+                            Column('joueur_id', ForeignKey('joueur.id'), primary_key=True)
+                            )
 
 
 class Groupe(Base):
@@ -128,7 +128,7 @@ class Joueur(Base):
     classements_parties = relationship("ClassementPartie", back_populates="joueur")
     eliminators = relationship("Elimination", back_populates="eliminator", foreign_keys='Elimination.eliminator_id')
     eliminateds = relationship("Elimination", back_populates="eliminated", foreign_keys='Elimination.eliminated_id')
-    
+
 
 class Partie(Base):
     __tablename__ = "partie"
@@ -164,6 +164,7 @@ def referee_results():
     parse_group_result(payload)
     return jsonify({"success": True})
 
+
 # Fonctions
 def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
     nb_joueurs = len(liste_joueurs)
@@ -172,7 +173,7 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
     nb_groupes = nb_groupes_pleins + (1 if taille_dernier_groupe > 0 else 0)
 
     groupes = [[] for _ in range(nb_groupes)]
-    while len(liste_joueurs) > 0: # round-robin
+    while len(liste_joueurs) > 0:  # round-robin
         for groupe in groupes:
             groupe.append(liste_joueurs.pop(0))
             if len(liste_joueurs) == 0:
@@ -180,20 +181,27 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
         if is_escargot: groupes.reverse()
     return groupes
 
+
 def get_current_edition():
-    return db.session.query(Edition).filter(Edition.debut_le<=datetime.now(), Edition.fin_le == None).first()
+    return db.session.query(Edition).filter(Edition.debut_le <= datetime.now(), Edition.fin_le == None).first()
+
 
 def get_current_tour_by_edition(edition):
-    return  db.session.query(Tour).filter(Tour.edition_id==edition.id, Tour.is_termine == 0).order_by(Tour.ordre).first()
+    return db.session.query(Tour).filter(Tour.edition_id == edition.id, Tour.is_termine == 0).order_by(
+        Tour.ordre).first()
+
 
 def get_arbitre_by_joueur_and_edition(joueur, edition):
-    return  db.session.query(Arbitre).filter(Arbitre.edition_id==edition.id, Arbitre.joueur_id == joueur.id).first()
+    return db.session.query(Arbitre).filter(Arbitre.edition_id == edition.id, Arbitre.joueur_id == joueur.id).first()
+
 
 def get_group_by_arbitre_and_tour(arbitre, tour):
-    return  db.session.query(Groupe).filter(Groupe.arbitre_id==arbitre.id, Groupe.tour_id == tour.id).first()
+    return db.session.query(Groupe).filter(Groupe.arbitre_id == arbitre.id, Groupe.tour_id == tour.id).first()
+
 
 def get_joueur_by_epic_id(epic_id):
-    return db.session.query(Joueur).filter(Joueur.epic_id==epic_id.upper()).first()
+    return db.session.query(Joueur).filter(Joueur.epic_id == epic_id.upper()).first()
+
 
 def calcul_points(rang, nb_kills, comptage):
     points = min(nb_kills, comptage['max_kills']) * comptage['points_par_kill']
@@ -224,41 +232,37 @@ def parse_group_result(payload):
         lookup[joueur.epic_id] = joueur
         nb_joueurs += 1
 
-    
     parties = []
     current_partie = {
         "joueurs_restant": [epic_id for epic_id in lookup.keys()],
         "eliminations": [],
         "classements_jeu": [],
-        "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key,value) in lookup.items()}
+        "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key, value) in lookup.items()}
     }
-    
-    
+
     for elim in payload['eliminations']:
-        
-        if elim['eliminated'] == payload['referee_epic_id']: # Arbitre
+
+        if elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
             if elim['eliminator'] != payload['referee_epic_id']:
-                
                 print(f"{lookup[elim['eliminator']].pseudo} à tué l'arbitre !")
                 continue
 
             print(f"Arbitre auto-éliminé.")
             continue
-        
+
         lu_or = lookup[elim['eliminator']]
         lu_ed = lookup[elim['eliminated']]
 
         current_partie["eliminations"].append({
-                "eliminator": lu_or,
-                "eliminated": lu_ed,
-                "timecode": elim['timecode'],
-                "gun_type" : elim['gunType']
-            })
+            "eliminator": lu_or,
+            "eliminated": lu_ed,
+            "timecode": elim['timecode'],
+            "gun_type": elim['gunType']
+        })
 
-
-        if elim['eliminator'] == elim['eliminated']: # auto-éliminé
+        if elim['eliminator'] == elim['eliminated']:  #  auto-éliminé
             print(f"Joueur {lu_ed.pseudo} auto-éliminé.")
-            current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] +=1
+            current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] += 1
             current_partie["classements_jeu"].append({
                 "joueur": lu_ed,
                 "rang": len(current_partie['joueurs_restant']),
@@ -267,10 +271,10 @@ def parse_group_result(payload):
             })
             current_partie['joueurs_restant'].remove(elim['eliminated'])
 
-        else: # Elimination 
-            print(f"Joueur {lu_or.pseudo} à éliminé joueur {lu_ed.pseudo}.")     
-            current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] +=1
-            current_partie["stat_joueurs"][elim['eliminator']]['nb_kills'] +=1 
+        else:  # Elimination
+            print(f"Joueur {lu_or.pseudo} à éliminé joueur {lu_ed.pseudo}.")
+            current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] += 1
+            current_partie["stat_joueurs"][elim['eliminator']]['nb_kills'] += 1
             current_partie["classements_jeu"].append({
                 "joueur": lookup[elim['eliminated']],
                 "rang": len(current_partie['joueurs_restant']),
@@ -279,12 +283,11 @@ def parse_group_result(payload):
             })
             current_partie['joueurs_restant'].remove(elim['eliminated'])
 
+        if len(current_partie['joueurs_restant']) == 1:  # we have a winner !
 
-        if len(current_partie['joueurs_restant']) == 1: # we have a winner !
-            
             gagnant = lookup[current_partie['joueurs_restant'].pop()]
-            
-            print(f"Joueur {gagnant.pseudo} a gagné la partie !") 
+
+            print(f"Joueur {gagnant.pseudo} a gagné la partie !")
             current_partie["classements_jeu"].append({
                 "joueur": gagnant,
                 "rang": 1,
@@ -298,15 +301,16 @@ def parse_group_result(payload):
                 "joueurs_restant": [epic_id for epic_id in lookup.keys()],
                 "eliminations": [],
                 "classements_jeu": [],
-                "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key,value) in lookup.items()},
+                "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key, value) in lookup.items()},
             }
 
     # delete existing eliminations/classements/parties for this groupe
-    db.session.query(Elimination).filter(Elimination.partie_id == Partie.id,Partie.groupe_id == groupe.id).delete(synchronize_session=False)
-    db.session.query(ClassementPartie).filter(ClassementPartie.partie_id == Partie.id,Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    db.session.query(Elimination).filter(Elimination.partie_id == Partie.id, Partie.groupe_id == groupe.id).delete(
+        synchronize_session=False)
+    db.session.query(ClassementPartie).filter(ClassementPartie.partie_id == Partie.id,
+                                              Partie.groupe_id == groupe.id).delete(synchronize_session=False)
     db.session.query(Partie).filter(Partie.groupe_id == groupe.id).delete(synchronize_session=False)
     db.session.commit()
-    
 
     comptage = json.loads(tour.comptage)
     print(parties)
@@ -326,7 +330,6 @@ def parse_group_result(payload):
             elimination.gun_type = e['gun_type']
             elimination.timecode = e['timecode']
             partie.eliminations.append(elimination)
-        
 
         for c in p['classements_jeu']:
             classement = ClassementPartie()
@@ -337,22 +340,9 @@ def parse_group_result(payload):
             classement.nb_morts = c['nb_morts']
             classement.nb_points = calcul_points(c['rang'], c['nb_kills'], comptage)
             partie.classements.append(classement)
-    db.session.add(partie)
-    db.session.commit()
+        db.session.add(partie)
+        db.session.commit()
 
 
-
-
-
-        
-
-        
-
-
-# Main
+#  Main
 app.run(host=HOST, port=PORT)
-
-
-
-
-
