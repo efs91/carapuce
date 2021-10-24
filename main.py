@@ -165,7 +165,7 @@ def referee_results():
     return jsonify({"success": True})
 
 
-@app.route("/")
+@app.route("/", methods=['GET'])
 def home():
     return render_template("templates/index.html", truc="toto")
 
