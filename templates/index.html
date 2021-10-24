@@ -5,10 +5,11 @@
     </head>
     <body>
     <a href="/truc">truc</a>
-	{% if truc == "toto" %}
-            <p>toto</p>
-        {% else %}
-            <p>pas toto</p>
-        {% endif %}
+
+    <p>Edition: {{ edition.label }} Tour: {{ tour.label }}</p>
+    {% for groupe in groupes %}
+    <p>groupe: {{ groupe.id }} {{ groupe.code }}</p>
+    {% endfor %}
+
     </body>
 </html>
