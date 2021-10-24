@@ -9,6 +9,9 @@
     <p>Edition: {{ edition.label }} Tour: {{ tour.label }}</p>
     {% for groupe in groupes %}
     <p>groupe: {{ groupe.id }} {{ groupe.code }}</p>
+        {% for partie in groupe.parties %}
+        <p>partie: {{ partie.id }}</p>
+        {% endfor %}
     {% endfor %}
 
     </body>

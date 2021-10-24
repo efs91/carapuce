@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
 
-from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, ForeignKey, null
 from sqlalchemy.orm import relationship, declarative_base
 
 # Config
@@ -191,7 +191,7 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
 
 
 def get_current_edition():
-    return db.session.query(Edition).filter(Edition.debut_le <= datetime.now(), Edition.fin_le == None).first()
+    return db.session.query(Edition).filter(Edition.debut_le <= datetime.now(), Edition.fin_le == null()).first()
 
 
 def get_current_tour_by_edition(edition):
@@ -272,7 +272,7 @@ def parse_group_result(payload):
             "gun_type": elim['gunType']
         })
 
-        if elim['eliminator'] == elim['eliminated']:  #  auto-éliminé
+        if elim['eliminator'] == elim['eliminated']:  # auto-éliminé
             print(f"Joueur {lu_ed.pseudo} auto-éliminé.")
             current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] += 1
             current_partie["classements_jeu"].append({
@@ -356,5 +356,5 @@ def parse_group_result(payload):
         db.session.commit()
 
 
-#  Main
+# Main
 app.run(host=HOST, port=PORT)
