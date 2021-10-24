@@ -1,3 +1,5 @@
+from math import floor
+
 import flask
 from flask import jsonify, request
 from flask_sqlalchemy import SQLAlchemy
@@ -14,7 +16,7 @@ PORT = 5000
 
 DB_HOST = "efs91.fr"
 DB_USER = "carapuce"
-DB_PASS = "sbirneb91"
+DB_PASS = "XXX"
 DB_DATABASE = "carapuce"
 
 # Init
@@ -175,7 +177,7 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
             groupe.append(liste_joueurs.pop(0))
             if len(liste_joueurs) == 0:
                 break
-        groupes.reverse() if is_escargot
+        if is_escargot: groupes.reverse()
     return groupes
 
 def get_current_edition():
