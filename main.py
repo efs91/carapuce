@@ -1,7 +1,7 @@
 from math import floor
 
 import flask
-from flask import jsonify, request
+from flask import jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
@@ -163,6 +163,11 @@ def referee_results():
     payload = request.json
     parse_group_result(payload)
     return jsonify({"success": True})
+
+
+@app.route("/")
+def home():
+    return render_template("templates/index.html", truc="toto")
 
 
 # Fonctions
