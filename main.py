@@ -65,6 +65,18 @@ class Edition(Base):
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
 
+class Elimination(Base):
+    __tablename__ = "elimination"
+    id = Column(Integer, primary_key=True)
+    partie_id = Column(Integer, ForeignKey('partie.id'))
+    partie = relationship("Partie", back_populates="eliminations")
+    eliminated_id = Column(Integer, ForeignKey('joueur.id'))
+    eliminated = relationship("Joueur", back_populates="eliminateds", foreign_keys='Elimination.eliminated_id')
+    eliminator_id = Column(Integer, ForeignKey('joueur.id'))
+    eliminator = relationship("Joueur", back_populates="eliminators", foreign_keys='Elimination.eliminator_id')
+    gun_type = Column(String)
+    timecode = Column(String)
+
 
 groupe_joueur_table = Table('groupe_joueur', Base.metadata,
     Column('groupe_id', ForeignKey('groupe.id'), primary_key=True),
@@ -80,6 +92,7 @@ class Groupe(Base):
     arbitre_id = Column(Integer, ForeignKey('arbitre.id'))
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
+    is_validated = Column(Boolean)
 
     joueurs = relationship(
         "Joueur",
@@ -110,8 +123,9 @@ class Joueur(Base):
         "Groupe",
         secondary=groupe_joueur_table,
         back_populates="joueurs")
-
     classements_parties = relationship("ClassementPartie", back_populates="joueur")
+    eliminators = relationship("Elimination", back_populates="eliminator", foreign_keys='Elimination.eliminator_id')
+    eliminateds = relationship("Elimination", back_populates="eliminated", foreign_keys='Elimination.eliminated_id')
     
 
 class Partie(Base):
@@ -124,7 +138,7 @@ class Partie(Base):
     fin_le = Column(DateTime)
 
     classements = relationship("ClassementPartie", back_populates="partie")
-    
+    eliminations = relationship("Elimination", back_populates="partie")
 
 
 class Tour(Base):
@@ -158,7 +172,7 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe):
     groupes = [[] for _ in range(nb_groupes)]
     while len(liste_joueurs) > 0: # round-robin
         for groupe in groupes:
-            groupe.push(list_joueurs.pop(0))
+            groupe.append(liste_joueurs.pop(0))
             if len(liste_joueurs) == 0:
                 break
     return groupes
@@ -197,6 +211,9 @@ def parse_group_result(payload):
     print(f"Arbitre : {joueur_arbitre.pseudo}")
     groupe = get_group_by_arbitre_and_tour(arbitre, tour)
     print(f"Groupe: {groupe.id} {groupe.code}")
+    if groupe.is_validated:
+        print("Groupe déja validé")
+        return
 
     lookup = {}
     nb_joueurs = 0
@@ -208,6 +225,7 @@ def parse_group_result(payload):
     parties = []
     current_partie = {
         "joueurs_restant": [epic_id for epic_id in lookup.keys()],
+        "eliminations": [],
         "classements_jeu": [],
         "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key,value) in lookup.items()}
     }
@@ -226,11 +244,20 @@ def parse_group_result(payload):
         
         lu_or = lookup[elim['eliminator']]
         lu_ed = lookup[elim['eliminated']]
+
+        current_partie["eliminations"].append({
+                "eliminator": lu_or,
+                "eliminated": lu_ed,
+                "timecode": elim['timecode'],
+                "gun_type" : elim['gunType']
+            })
+
+
         if elim['eliminator'] == elim['eliminated']: # auto-éliminé
             print(f"Joueur {lu_ed.pseudo} auto-éliminé.")
             current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] +=1
-            current_partie["classements_jeu"].push({
-                "joueur": joueur,
+            current_partie["classements_jeu"].append({
+                "joueur": lu_ed,
                 "rang": len(current_partie['joueurs_restant']),
                 "nb_kills": current_partie["stat_joueurs"][elim['eliminated']]['nb_kills'],
                 "nb_morts": 1
@@ -266,9 +293,17 @@ def parse_group_result(payload):
 
             current_partie = {
                 "joueurs_restant": [epic_id for epic_id in lookup.keys()],
+                "eliminations": [],
                 "classements_jeu": [],
                 "stat_joueurs": {key: {"nb_kills": 0, "nb_morts": 0} for (key,value) in lookup.items()},
             }
+
+    # delete existing eliminations/classements/parties for this groupe
+    db.session.query(Elimination).filter(Elimination.partie_id == Partie.id,Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    db.session.query(ClassementPartie).filter(ClassementPartie.partie_id == Partie.id,Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    db.session.query(Partie).filter(Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    db.session.commit()
+    
 
     comptage = json.loads(tour.comptage)
     print(parties)
@@ -279,6 +314,16 @@ def parse_group_result(payload):
         partie.ordre = ordre
         partie.debut_le = datetime.now()
         partie.fin_le = datetime.now()
+
+        for e in p['eliminations']:
+            elimination = Elimination()
+            elimination.partie = partie
+            elimination.eliminator = e['eliminator']
+            elimination.eliminated = e['eliminated']
+            elimination.gun_type = e['gun_type']
+            elimination.timecode = e['timecode']
+            partie.eliminations.append(elimination)
+        
 
         for c in p['classements_jeu']:
             classement = ClassementPartie()
