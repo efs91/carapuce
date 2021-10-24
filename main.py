@@ -167,7 +167,7 @@ def referee_results():
 
 @app.route("/admin", methods=['GET'])
 def home():
-    return render_template("~/src/templates/index.html", truc="toto")
+    return render_template("index.html", truc="toto")
 
 
 # Fonctions
