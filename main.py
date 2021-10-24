@@ -163,7 +163,7 @@ def referee_results():
     return jsonify({"success": True})
 
 # Fonctions
-def get_composition_tour(liste_joueurs, max_joueurs_par_groupe):
+def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
     nb_joueurs = len(liste_joueurs)
     nb_groupes_pleins = floor(nb_joueurs / max_joueurs_par_groupe)
     taille_dernier_groupe = nb_joueurs - (nb_groupes_pleins * max_joueurs_par_groupe)
@@ -175,6 +175,7 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe):
             groupe.append(liste_joueurs.pop(0))
             if len(liste_joueurs) == 0:
                 break
+        groupes.reverse() if is_escargot
     return groupes
 
 def get_current_edition():
