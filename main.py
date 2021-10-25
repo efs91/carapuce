@@ -1,7 +1,7 @@
 from math import floor
 
 import flask
-from flask import jsonify, request, render_template
+from flask import jsonify, request, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
@@ -65,6 +65,8 @@ class Edition(Base):
     label = Column(String)
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
+
+    tours = relationship("Tour", back_populates="edition")
 
 
 class Elimination(Base):
@@ -152,6 +154,7 @@ class Tour(Base):
     label = Column(String)
     is_termine = Column(Boolean)
     edition_id = Column(Integer, ForeignKey('edition.id'))
+    edition = relationship("Edition", back_populates="tours")
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
     max_joueurs_par_groupe = Column(Integer)
@@ -183,22 +186,28 @@ def http_get_admin_groupe(groupe_id):
     return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
 
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
-def http_get_admin_groupe_validate(groupe_id):
+def http_post_admin_groupe_validate(groupe_id):
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
     groupe.is_validated = True
     db.session.commit()
-    return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+    return redirect('/admin')
 
 @app.route("/admin/groupe/<groupe_id>/unvalidate", methods=['POST'])
-def http_get_admin_groupe_unvalidate(groupe_id):
+def http_post_admin_groupe_unvalidate(groupe_id):
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
     groupe.is_validated = False
     db.session.commit()
-    return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+    return redirect('/admin')
+
+
+@app.route("/admin/partie/<partie_id>", methods=['GET'])
+def http_get_admin_partie(partie_id):
+    partie = get_partie_by_id(partie_id)
+    return render_template("partie.html", partie=partie)
 
 
 # Fonctions
@@ -233,6 +242,10 @@ def get_arbitre_by_joueur_and_edition(joueur, edition):
 
 def get_groupe_by_id(groupe_id):
     return db.session.query(Groupe).filter(Groupe.id == groupe_id).first()
+
+
+def get_partie_by_id(partie_id):
+    return db.session.query(Partie).filter(Partie.id == partie_id).first()
 
 
 def get_group_by_arbitre_and_tour(arbitre, tour):

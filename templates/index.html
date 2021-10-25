@@ -11,13 +11,7 @@
 <ul>
     {% for groupe in tour.groupes %}
     {% if not groupe.is_validated %}
-    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
-        <ul>
-            {% for partie in groupe.parties %}
-            <li>partie: {{ partie.id }} partie.</li>
-            {% endfor %}
-        </ul>
-    </li>
+    <a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
     {% endif %}
     {% endfor %}
 </ul>
@@ -26,13 +20,7 @@
 <ul>
     {% for groupe in tour.groupes %}
     {% if groupe.is_validated %}
-    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
-        <ul>
-            {% for partie in groupe.parties %}
-            <li>partie: {{ partie.id }} partie.</li>
-            {% endfor %}
-        </ul>
-    </li>
+    <a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
     {% endif %}
     {% endfor %}
 </ul>

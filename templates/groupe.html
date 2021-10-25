@@ -18,7 +18,8 @@
         {% endif %}
         <ul>
             {% for partie in groupe.parties %}
-            <li>partie {{ partie.id }}: </li>
+            <h2>partie {{ partie.id }}: </h2>
+                <h3>Classement</h3>
                 <table border=1>
                     <tr>
                         <td>
@@ -29,6 +30,9 @@
                         </td>
                         <td>
                             Nb kills
+                        </td>
+                        <td>
+                            Nb points
                         </td>
                     </tr>
                     {% for c in partie.classements %}
@@ -42,9 +46,44 @@
                         <td>
                             {{c.nb_kills}}
                         </td>
+                        <td>
+                            {{c.nb_points}}
+                        </td>
                     </tr>
                     {% endfor %}
                 </table>
+                <h3>Éliminations</h3>
+                <table border=1>
+                    <tr>
+                        <th>
+                            Min:Sec   
+                        </th>
+                        <th>
+                            Élimination
+                        </th>
+                        <th>
+                            Type
+                        </th>
+                    </tr>
+                    {% for e in partie.eliminations %}
+                    <tr>
+                        <td>
+                            {{ e.timecode }}  
+                        </td>
+                        <td>
+                            {% if e.eliminator.epic_id == e.eliminated.epic_id %}
+                                <span style="color:red">{{ e.eliminated.pseudo}}</span> s'est auto-éliminé(e).
+                            {% else %}
+                            {{ e.eliminator.pseudo}} a éliminé <span style="color:red">{{ e.eliminated.pseudo}}</span>.
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ e.gun_type }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            
 
             {% endfor %}
         </ul>
