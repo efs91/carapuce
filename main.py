@@ -13,7 +13,7 @@ from sqlalchemy.orm import relationship, declarative_base
 HOST = "0.0.0.0"
 PORT = 5000
 
-DB_HOST = "localhost"
+DB_HOST = "efs91.fr"
 DB_USER = "carapuce"
 DB_PASS = "sbirneb91"
 DB_DATABASE = "carapuce"
@@ -169,14 +169,14 @@ def referee_results():
 
 
 @app.route("/admin", methods=['GET'])
-def home():
+def http_get_admin():
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     return render_template("index.html", edition=edition, tour=tour)
 
 
-@app.route("/admin/groupe/<int:groupe_id>", methods=['GET'])
-def home(groupe_id):
+@app.route("/admin/groupe/<groupe_id>", methods=['GET'])
+def http_get_admin_groupe(groupe_id):
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
@@ -214,7 +214,7 @@ def get_arbitre_by_joueur_and_edition(joueur, edition):
 
 
 def get_groupe_by_id(groupe_id):
-    return db.session.query(Groupe).filter(Groupe.groupe_id == groupe_id).first()
+    return db.session.query(Groupe).filter(Groupe.id == groupe_id).first()
 
 
 def get_group_by_arbitre_and_tour(arbitre, tour):
