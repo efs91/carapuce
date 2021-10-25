@@ -90,6 +90,7 @@ class Groupe(Base):
     __tablename__ = "groupe"
     id = Column(Integer, primary_key=True)
     tour_id = Column(Integer, ForeignKey('tour.id'))
+    tour = relationship("Tour", back_populates="groupes")
     code = Column(String)
     arbitre_id = Column(Integer, ForeignKey('arbitre.id'))
     debut_le = Column(DateTime)
@@ -155,6 +156,8 @@ class Tour(Base):
     fin_le = Column(DateTime)
     max_joueurs_par_groupe = Column(Integer)
     comptage = Column(String)
+
+    groupes = relationship("Groupe", back_populates="tour")
 
 
 # Routing
