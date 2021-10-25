@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{edition.label}} - {{tour.label}} -  Groupe {{groupe.code}} - {{groupe.label}}</title>
+</head>
+<body>
+    <h1>Groupe {{groupe.code}} - {{groupe.label}}</h1>
+
+
+        <ul>
+            {% for partie in groupe.parties %}
+            <li>partie: {{ partie.id }} partie.</li>
+            {% endfor %}
+        </ul>
+    </li>
+    {% endfor %}
+</ul>
+</body>
+</html>

@@ -6,16 +6,34 @@
 <body>
 <h1>Edition: {{ edition.label }}</h1>
 <h2>Tour: {{ tour.label }}</h2>
+
 <h3>Groupes en attente de validation :</h3>
 <ul>
     {% for groupe in tour.groupes %}
-    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }}</a>
+    {% if !groupe.is_validated %}
+    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({% len(groupe.parties) %} parties)</a>
         <ul>
             {% for partie in groupe.parties %}
             <li>partie: {{ partie.id }} partie.</li>
             {% endfor %}
         </ul>
     </li>
+    {µ endif %}
+    {% endfor %}
+</ul>
+
+<h3>Groupes validés :</h3>
+<ul>
+    {% for groupe in tour.groupes %}
+    {% if groupe.is_validated %}
+    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({% len(groupe.parties) %} parties)</a>
+        <ul>
+            {% for partie in groupe.parties %}
+            <li>partie: {{ partie.id }} partie.</li>
+            {% endfor %}
+        </ul>
+    </li>
+    {µ endif %}
     {% endfor %}
 </ul>
 </body>

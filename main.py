@@ -175,6 +175,14 @@ def home():
     return render_template("index.html", edition=edition, tour=tour)
 
 
+@app.route("/admin/groupe/<int:groupe_id>", methods=['GET'])
+def home(groupe_id):
+    edition = get_current_edition()
+    tour = get_current_tour_by_edition(edition)
+    groupe = get_groupe_by_id(groupe_id)
+    return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+
+
 # Fonctions
 def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
     nb_joueurs = len(liste_joueurs)
@@ -203,6 +211,10 @@ def get_current_tour_by_edition(edition):
 
 def get_arbitre_by_joueur_and_edition(joueur, edition):
     return db.session.query(Arbitre).filter(Arbitre.edition_id == edition.id, Arbitre.joueur_id == joueur.id).first()
+
+
+def get_groupe_by_id(groupe_id):
+    return db.session.query(Groupe).filter(Groupe.groupe_id == groupe_id).first()
 
 
 def get_group_by_arbitre_and_tour(arbitre, tour):
