@@ -169,8 +169,7 @@ def referee_results():
 def home():
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
-    groupes = get_groupes_by_tour(tour)
-    return render_template("index.html", edition=edition, tour=tour, groupes=groupes)
+    return render_template("index.html", edition=edition, tour=tour)
 
 
 # Fonctions
@@ -197,10 +196,6 @@ def get_current_edition():
 def get_current_tour_by_edition(edition):
     return db.session.query(Tour).filter(Tour.edition_id == edition.id, Tour.is_termine == 0).order_by(
         Tour.ordre).first()
-
-
-def get_groupes_by_tour(tour):
-    return db.session.query(Groupe).filter(Groupe.tour_id == tour.id).all()
 
 
 def get_arbitre_by_joueur_and_edition(joueur, edition):

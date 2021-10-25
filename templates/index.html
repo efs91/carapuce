@@ -5,14 +5,19 @@
     </head>
     <body>
     <a href="/truc">truc</a>
-
-    <p>Edition: {{ edition.label }} Tour: {{ tour.label }}</p>
-    {% for groupe in groupes %}
-    <p>groupe: {{ groupe.id }} {{ groupe.code }}</p>
+    <h1>Edition: {{ edition.label }}</h1>
+    <h2>Tour: {{ tour.label }}</h2>
+    <h3>Groupes en attente de validation :</h3>
+    <ul>
+    {% for groupe in tour.groupes %}
+        <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }}</a>
+        <ul>
         {% for partie in groupe.parties %}
-        <p>partie: {{ partie.id }} partie.</p>
+        <li>partie: {{ partie.id }} partie.</li>
         {% endfor %}
+        </ul>
+    </li>
     {% endfor %}
-
+    </ul>
     </body>
 </html>
