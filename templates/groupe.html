@@ -5,10 +5,47 @@
     <title>{{edition.label}} - {{tour.label}} -  Groupe {{groupe.code}} - {{groupe.label}}</title>
 </head>
 <body>
-    <h1>Groupe {{groupe.code}} - {{groupe.label}}</h1>
+    <h1>Groupe {{groupe.code}}</h1>
+
+        {% if not groupe.is_validated %}
+        <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
+            <button type="submit">Valider les parties</button>
+        </form>
+        {% else %}
+        <form method="POST" action="/admin/groupe/{{groupe.id}}/unvalidate">
+            <button type="submit">Annuler la validation des parties</button>
+        </form>
+        {% endif %}
         <ul>
             {% for partie in groupe.parties %}
-            <li>partie: {{ partie.id }} partie.</li>
+            <li>partie {{ partie.id }}: </li>
+                <table border=1>
+                    <tr>
+                        <td>
+                            Place
+                        </td>
+                        <td>
+                            Pseudo
+                        </td>
+                        <td>
+                            Nb kills
+                        </td>
+                    </tr>
+                    {% for c in partie.classements %}
+                    <tr>
+                        <td>
+                            {{c.rang_jeu}}
+                        </td>
+                        <td>
+                            {{c.joueur.pseudo}}
+                        </td>
+                        <td>
+                            {{c.nb_kills}}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+
             {% endfor %}
         </ul>
 </ul>

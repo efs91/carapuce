@@ -182,6 +182,24 @@ def http_get_admin_groupe(groupe_id):
     groupe = get_groupe_by_id(groupe_id)
     return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
 
+@app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
+def http_get_admin_groupe_validate(groupe_id):
+    edition = get_current_edition()
+    tour = get_current_tour_by_edition(edition)
+    groupe = get_groupe_by_id(groupe_id)
+    groupe.is_validated = True
+    db.session.commit()
+    return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+
+@app.route("/admin/groupe/<groupe_id>/unvalidate", methods=['POST'])
+def http_get_admin_groupe_unvalidate(groupe_id):
+    edition = get_current_edition()
+    tour = get_current_tour_by_edition(edition)
+    groupe = get_groupe_by_id(groupe_id)
+    groupe.is_validated = False
+    db.session.commit()
+    return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+
 
 # Fonctions
 def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
