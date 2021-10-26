@@ -1,92 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>{{edition.label}} - {{tour.label}} -  Groupe {{groupe.code}} - {{groupe.label}}</title>
+    <title>{{edition.label}} - {{tour.label}} - Groupe {{groupe.code}} - {{groupe.label}}</title>
 </head>
+
 <body>
-    <h1>Groupe {{groupe.code}}</h1>
 
-        {% if not groupe.is_validated %}
-        <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
-            <button type="submit">Valider les parties</button>
-        </form>
-        {% else %}
-        <form method="POST" action="/admin/groupe/{{groupe.id}}/unvalidate">
-            <button type="submit">Annuler la validation des parties</button>
-        </form>
-        {% endif %}
-        <ul>
-            {% for partie in groupe.parties %}
-            <h2>partie {{ partie.id }}: </h2>
-                <h3>Classement</h3>
-                <table border=1>
-                    <tr>
-                        <th>
-                            Place
-                        </th>
-                        <th>
-                            Pseudo
-                        </th>
-                        <th>
-                            Nb kills
-                        </th>
-                        <th>
-                            Nb points
-                        </th>
-                    </tr>
-                    {% for c in partie.classements %}
-                    <tr>
-                        <td>
-                            {{c.rang_jeu}}
-                        </td>
-                        <td>
-                            {{c.joueur.pseudo}}
-                        </td>
-                        <td>
-                            {{c.nb_kills}}
-                        </td>
-                        <td>
-                            {{c.nb_points}}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
-                <h3>Éliminations</h3>
-                <table border=1>
-                    <tr>
-                        <th>
-                            Min:Sec   
-                        </th>
-                        <th>
-                            Élimination
-                        </th>
-                        <th>
-                            Type
-                        </th>
-                    </tr>
-                    {% for e in partie.eliminations %}
-                    <tr>
-                        <td>
-                            {{ e.timecode }}  
-                        </td>
-                        <td>
-                            {% if e.eliminator.epic_id == e.eliminated.epic_id %}
-                                <span style="color:red">{{ e.eliminated.pseudo}}</span> s'est auto-éliminé(e).
-                            {% else %}
-                            {{ e.eliminator.pseudo}} a éliminé <span style="color:red">{{ e.eliminated.pseudo}}</span>.
-                            {% endif %}
-                        </td>
-                        <td>
-                            {{ e.gun_type }}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </table>
-            
+<h1>Groupe {{groupe.code}} {% if not groupe.has_resultats %}
+    <b>Sans résultats</b> ({{ groupe.joueurs|length }} joueurs)
+    {% elif not groupe.is_validated %}
+    <b>Non-validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+    {% elif groupe.is_validated %}
+    <b>Validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+    {% endif %}
+</h1>
 
-            {% endfor %}
-        </ul>
+<h2>Joueurs</h2>
+<ul>
+    <table>
+        <tr>
+            <th>
+                Id
+            </th>
+            <th>
+                Pseudo
+            </th>
+            <th>
+                Discord
+            </th>
+            <th>
+                Epic
+            </th>
+        </tr>
+        {% for j in groupe.joueurs %}
+        <tr>
+            <td>
+                {{ j.id }}
+            </td>
+            <td>
+                {{ j.pseudo }}
+            </td>
+            <td>
+                {{ j.discord_id }}
+            </td>
+            <td>
+                {{ j.epic_id }}
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
 </ul>
+
+{% if not groupe.has_resulats %}
+<h2>Résultats</h2>
+    {% if not groupe.is_validated %}
+    <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
+        <button type="submit">Valider les résultats</button>
+    </form>
+    {% else %}
+    
+    <form method="POST" action="/admin/groupe/{{groupe.id}}/unvalidate">
+        <button type="submit">Annuler la validation des parties</button>
+    </form>
+     
+    {% endif %}
+    <ul>
+        {% for partie in groupe.parties %}
+        <h2>partie {{ partie.ordre }}: </h2>
+
+        <h3>Classement</h3>
+        <ul>
+        <table>
+            <tr>
+                <th>Place</th>
+                <th>Pseudo</th>
+                <th>Nb kills</th>
+                <th>Nb morts</th>
+                <th>Nb points</th>
+            </tr>
+            {% for c in partie.classements %}
+            <tr>
+                <td>{{c.rang_jeu}}</td>
+                <td>{{c.joueur.pseudo}}</td>
+                <td>{{c.nb_kills}}</td>
+                <td>{{c.nb_morts}}</td>
+                <td>{{c.nb_points}}</td>
+            </tr>
+            {% endfor %}
+        
+        </table>
+        </ul>
+        <h3>Éliminations</h3>
+        <ul>
+        <table>
+            <tr>
+                <th>
+                    Temps
+                </th>
+                <th>
+                    Élimination
+                </th>
+                <th>
+                    Type
+                </th>
+            </tr>
+            {% for e in partie.eliminations %}
+            <tr>
+                <td>
+                    {{ e.timecode }}
+                </td>
+                <td>
+                    {% if e.eliminator.epic_id == e.eliminated.epic_id %}
+                    <span style="color:red">{{ e.eliminated.pseudo}}</span> s'est auto-éliminé(e).
+                    {% else %}
+                    {{ e.eliminator.pseudo}} a éliminé <span style="color:red">{{ e.eliminated.pseudo}}</span>.
+                    {% endif %}
+                </td>
+                <td>
+                    {{ e.gun_type }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        </ul>
+
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    
 </body>
+
 </html>

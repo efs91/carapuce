@@ -6,7 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import json
 
-from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, ForeignKey, null
+from sqlalchemy import Table, Column, Integer, String, Boolean, DateTime, ForeignKey, null, func, asc, desc, text
 from sqlalchemy.orm import relationship, declarative_base
 
 # Config
@@ -39,6 +39,7 @@ class Arbitre(Base):
 class ClassementGroupe(Base):
     __tablename__ = "classement_groupe"
     groupe_id = Column(Integer, ForeignKey('groupe.id'), primary_key=True)
+    groupe = relationship("Groupe", back_populates="classements")
     rang = Column(Integer, primary_key=True)
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     nb_kills = Column(Integer)
@@ -97,6 +98,7 @@ class Groupe(Base):
     arbitre_id = Column(Integer, ForeignKey('arbitre.id'))
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
+    has_resultats = Column(Boolean)
     is_validated = Column(Boolean)
 
     joueurs = relationship(
@@ -105,6 +107,7 @@ class Groupe(Base):
         back_populates="groupes")
 
     parties = relationship("Partie", back_populates="groupe")
+    classements = relationship("ClassementGroupe", back_populates="groupe")
 
 
 class Inscription(Base):
@@ -175,7 +178,8 @@ def referee_results():
 def http_get_admin():
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
-    return render_template("index.html", edition=edition, tour=tour)
+    classements = get_classements(edition=edition)
+    return render_template("index.html", edition=edition, tour=tour, classements=classements)
 
 
 @app.route("/admin/groupe/<groupe_id>", methods=['GET'])
@@ -183,6 +187,7 @@ def http_get_admin_groupe(groupe_id):
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
+
     return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
 
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
@@ -263,6 +268,34 @@ def calcul_points(rang, nb_kills, comptage):
             points += comptage['points_par_tops'][top]
             break
     return points
+
+def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
+    
+    query = db.session.query(
+            Joueur.pseudo, 
+            func.sum(ClassementPartie.nb_points).label('nb_points'),
+            func.sum(ClassementPartie.nb_morts).label('nb_morts'),
+            func.sum(ClassementPartie.nb_kills).label('nb_kills')
+            ).filter( 
+            Tour.edition_id == Edition.id,
+            Groupe.tour_id == Tour.id,
+            Partie.groupe_id == Groupe.id,
+            ClassementPartie.partie_id == Partie.id,
+            Groupe.is_validated == True,
+            groupe_joueur_table.c.groupe_id == Groupe.id,
+            Joueur.id == groupe_joueur_table.c.joueur_id,
+            ClassementPartie.joueur_id == Joueur.id,
+            ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
+    if (edition): query.filter(Edition.id == edition.id)
+    if (tour): query.filter(Tour.id == tour.id)
+    if (groupe): query.filter(Groupe.id == groupe.id)
+    if (partie): query.filter(Partie.id == partie.id)
+    if (joueur): query.filter(Joueur.id == joueur.id)
+                
+    res = query.all()
+
+    return res
+
 
 
 def parse_group_result(payload):
@@ -367,8 +400,9 @@ def parse_group_result(payload):
 
     comptage = json.loads(tour.comptage)
     print(parties)
-    ordre = 1
+    ordre = 0
     for p in parties:
+        ordre += 1
         partie = Partie()
         partie.groupe = groupe
         partie.ordre = ordre
@@ -394,7 +428,9 @@ def parse_group_result(payload):
             classement.nb_points = calcul_points(c['rang'], c['nb_kills'], comptage)
             partie.classements.append(classement)
         db.session.add(partie)
-        db.session.commit()
+
+    groupe.has_resultats = True
+    db.session.commit()
 
 
 # Main

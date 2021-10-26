@@ -4,25 +4,49 @@
     <title>Carapuce Admin</title>
 </head>
 <body>
-<h1>Edition: {{ edition.label }}</h1>
-<h2>Tour: {{ tour.label }}</h2>
-
-<h3>Groupes en attente de validation :</h3>
+<h1>{{ edition.label }}</h1>
+<h2>{{ tour.label }}</h2>
+<h3>Classement général (temporaire)</h3>
 <ul>
-    {% for groupe in tour.groupes %}
-    {% if not groupe.is_validated %}
-    <a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
-    {% endif %}
+<table>
+    <tr>
+        <th>Place</th>
+        <th>Pseudo</th>
+        <th>Nb kills</th>
+        <th>Nb morts</th>
+        <th>Nb points</th>
+    </tr>
+    {% for c in classements %}
+    <tr>
+        <td>{{c.rang}}</td>
+        <td>{{c.pseudo}}</td>
+        <td>{{c.nb_kills}}</td>
+        <td>{{c.nb_morts}}</td>
+        <td>{{c.nb_points}}</td>
+    </tr>
     {% endfor %}
+</table>
 </ul>
 
-<h3>Groupes validés :</h3>
+<h3>Groupes</h3>
+{% if tour.groupes|length>0 %}
 <ul>
     {% for groupe in tour.groupes %}
-    {% if groupe.is_validated %}
-    <a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }} ({{ groupe.parties|length }} parties)</a>
-    {% endif %}
+        <li><a href="/admin/groupe/{{ groupe.id }}">Groupe {{ groupe.code }}</a>
+            {% if not groupe.has_resultats %}
+                <b>Sans résultats</b> ({{ groupe.joueurs|length }} joueurs)
+            {% elif not groupe.is_validated %}
+                <b>Non-validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+            {% elif groupe.is_validated %}
+                <b>Validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+            {% endif %}
+        </li>
+    {% else %}
+        Aucun groupe.
     {% endfor %}
+
 </ul>
+{% endif %}
+
 </body>
 </html>
