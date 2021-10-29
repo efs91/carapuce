@@ -182,9 +182,11 @@ def referee_results():
 @app.route("/admin", methods=['GET'])
 def http_get_admin():
     edition = get_current_edition()
-    tour = get_current_tour_by_edition(edition)
+    currrent_tour = get_current_tour_by_edition(edition)
     classements = get_classements(edition=edition)
-    return render_template("index.html", edition=edition, tour=tour, classements=classements)
+
+
+    return render_template("index.html", edition=edition, currrent_tour=currrent_tour, classements=classements)
 
 
 @app.route("/admin/groupe/<groupe_id>", methods=['GET'])
