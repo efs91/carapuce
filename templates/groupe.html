@@ -48,6 +48,11 @@
             <td>
                 {{ j.epic_id }}
             </td>
+            <td>
+                <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
+                    <button type="submit"></button>
+                </form>
+            </td>
         </tr>
         {% endfor %}
 

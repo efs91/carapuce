@@ -34,7 +34,7 @@ class Arbitre(Base):
     id = Column(Integer, primary_key=True)
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     edition_id = Column(Integer, ForeignKey('edition.id'))
-    edition = relationship("Arbitre", back_populates="arbitres")
+    edition = relationship("Edition", back_populates="arbitres")
 
 
 class ClassementGroupe(Base):
@@ -166,7 +166,7 @@ class Tour(Base):
     edition = relationship("Edition", back_populates="tours")
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
-    max_joueurs_par_groupe = Column(Integer)
+    config = Column(String)
 
     groupes = relationship("Groupe", back_populates="tour")
 
@@ -182,11 +182,34 @@ def referee_results():
 @app.route("/admin", methods=['GET'])
 def http_get_admin():
     edition = get_current_edition()
-    currrent_tour = get_current_tour_by_edition(edition)
+    current_tour = get_current_tour_by_edition(edition)
     classements = get_classements(edition=edition)
+    return render_template("index.html", edition=edition, current_tour_code=current_tour.code, classements=classements)
+
+@app.route("/admin/edition/<edition_id>", methods=['GET'])
+def http_get_admin_edition(edition_id):
+    edition = get_edition_by_id(edition_id)
+    return render_template("index.html", edition=edition, current_tour_code=None    )
+
+@app.route("/admin/edition/<edition_id>/init", methods=['POST'])
+def http_get_admin_edition_init(edition_id):
+    edition = get_edition_by_id(edition_id)
+    init_edition(edition)
+    return render_template("index.html", edition=edition)
+
+@app.route("/admin/edition/<edition_id>/delete_tours", methods=['POST'])
+def http_get_admin_edition_delete_tour(edition_id):
+    edition = get_edition_by_id(edition_id)
+    db.session.query(Tour).filter(Tour.edition==edition).delete()
+    db.session.commit()
+    return render_template("index.html", edition=edition)
 
 
-    return render_template("index.html", edition=edition, currrent_tour=currrent_tour, classements=classements)
+@app.route("/admin/tour/<tour_id>/init", methods=['POST'])
+def http_get_admin_tour_init(tour_id):
+    tour = get_tour_by_id(tour_id)
+    init_tour(tour)
+    return render_template("index.html", edition=tour.edition)
 
 
 @app.route("/admin/groupe/<groupe_id>", methods=['GET'])
@@ -223,10 +246,33 @@ def http_get_admin_partie(partie_id):
 
 
 # Fonctions
-def create_tour(edition, config_tour):
+def init_edition(edition):
+    config = get_edition_config(edition)
+
+    if len(edition.tours)>0:
+        raise Exception('Edition contient deja des tours')
+
+
+    for idx, config_tour in enumerate(config['tours'], start=1):
+        tour = Tour()
+        tour.ordre = idx
+        tour.edition = edition
+        tour.label = config_tour['label']
+        tour.code = edition.code + 'T' + str(config_tour['ordre'])
+        tour.is_termine = False
+        tour.config = json.dumps(config_tour)
+    
+    db.session.add(tour)
+    db.session.commit()
+
+
+
+def init_tour(tour):
+
+    config_tour = json.loads(tour.config)
 
     if config_tour['composition'] == 'ALL':
-        joueurs = edition.joueurs_inscrits
+        joueurs = tour.edition.joueurs_inscrits.copy()
     elif config_tour['composition'] == 'TOP-ABS-GENERAL':
         joueurs = map(lambda c: c.joueur, get_classements(edition))
         joueurs.slice(config_tour['max_joueurs_par_groupe'])
@@ -235,29 +281,29 @@ def create_tour(edition, config_tour):
 
     listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'], config_tour['algo'] == 'ESCARGOT')
 
-    tour = Tour()
-    tour.edition = edition
-    tour.label = config_tour['label']
-    tour.code = edition.code + 'T' + config_tour['ordre']
-    tour.is_termine = False
-
-    arbitres_restants = edition.arbitres.copy()
+    arbitres_restants = tour.edition.arbitres.copy()
 
     i = 1
     for liste in listes_joueurs:
         groupe = Groupe()
-        groupe.code = tour.code + 'G' + i
+        groupe.code = tour.code + 'G' + str(i)
         groupe.is_validated = False
+        groupe.has_resulats = False
+        
+
+        if len(arbitres_restants)==0:
+            raise Exception("Plus d'arbitre disponible.")
+
+        arbitre = arbitres_restants.pop()
+
+        groupe.arbitre = arbitre
+
         for joueur in liste:
             groupe.joueurs.append(joueur)
-        arbitre = arbitres_restants.pop()
-        if not arbitre:
-            raise Exception("Plus d'arbitre disponible.")
-        groupe.arbitre = arbitre
-        i += 1
+        
         tour.groupes.append(groupe)
+        i += 1
 
-    db.session.add(tour)
     db.session.commit()
 
     return tour
@@ -281,6 +327,13 @@ def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
 
 def get_current_edition():
     return db.session.query(Edition).filter(Edition.debut_le <= datetime.now(), Edition.fin_le == null()).first()
+
+
+def get_edition_by_id(edition_id):
+    return db.session.query(Edition).filter(Edition.id==edition_id).first()
+
+def get_tour_by_id(tour_id):
+    return db.session.query(Tour).filter(Tour.id==tour_id).first()
 
 
 def get_current_tour_by_edition(edition):
@@ -319,7 +372,7 @@ def calcul_points(rang, nb_kills, comptage):
 def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
     
     query = db.session.query(
-            Joueur.label('joueur'),
+            Joueur,
             func.sum(ClassementPartie.nb_points).label('nb_points'),
             func.sum(ClassementPartie.nb_morts).label('nb_morts'),
             func.sum(ClassementPartie.nb_kills).label('nb_kills')
@@ -343,8 +396,9 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
 
     return res
 
-def get_config(tour):
-    return json.loads(tour.config)
+def get_edition_config(edition):
+    print(edition.config)
+    return json.loads(edition.config)
 
 
 def parse_group_result(payload):
