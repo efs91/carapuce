@@ -66,7 +66,7 @@ class Edition(Base):
     label = Column(String)
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
-
+    config = Column(String)
     tours = relationship("Tour", back_populates="edition")
 
 
@@ -161,7 +161,6 @@ class Tour(Base):
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
     max_joueurs_par_groupe = Column(Integer)
-    comptage = Column(String)
 
     groupes = relationship("Groupe", back_populates="tour")
 
@@ -296,6 +295,8 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
 
     return res
 
+def get_config(tour):
+    return json.loads(tour.config)
 
 
 def parse_group_result(payload):
@@ -398,7 +399,7 @@ def parse_group_result(payload):
     db.session.query(Partie).filter(Partie.groupe_id == groupe.id).delete(synchronize_session=False)
     db.session.commit()
 
-    comptage = json.loads(tour.comptage)
+    config = get_config(tour)
     print(parties)
     ordre = 0
     for p in parties:
@@ -425,7 +426,7 @@ def parse_group_result(payload):
             classement.rang_jeu = c['rang']
             classement.nb_kills = c['nb_kills']
             classement.nb_morts = c['nb_morts']
-            classement.nb_points = calcul_points(c['rang'], c['nb_kills'], comptage)
+            classement.nb_points = calcul_points(c['rang'], c['nb_kills'], config['comptage'])
             partie.classements.append(classement)
         db.session.add(partie)
 
