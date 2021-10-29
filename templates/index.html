@@ -4,19 +4,80 @@
     <title>Carapuce Admin</title>
 </head>
 <body>
-<h1>Edition: {{ edition.label }}</h1>
-<h2>Tour: {{ tour.label }}</h2>
-<h3>Groupes en attente de validation :</h3>
+<h1>{{ edition.label }}</h1>
+<h2>Tour en cours : {{ current_tour.label }}</h2>
+
+<h3>Classement général (temporaire)</h3>
 <ul>
-    {% for groupe in tour.groupes %}
-    <li><a href="/admin/groupe/{{ groupe.id }}">groupe: {{ groupe.code }}</a>
-        <ul>
-            {% for partie in groupe.parties %}
-            <li>partie: {{ partie.id }} partie.</li>
-            {% endfor %}
-        </ul>
-    </li>
+<table>
+    <tr>
+        <th>Place</th>
+        <th>Pseudo</th>
+        <th>Kills</th>
+        <th>Mrts</th>
+         <th>Victoires</th>
+        <th>Points</th>
+
+    </tr>
+    {% for c in classements %}
+    <tr>
+        <td>{{c.rang}}</td>
+        <td>{{c.pseudo}}</td>
+        <td>{{c.nb_kills}}</td>
+        <td>{{c.nb_morts}}</td>
+        <td>{{c.nb_victoires}}</td>
+        <td>{{c.nb_points}}</td>
+
+    </tr>
     {% endfor %}
+</table>
 </ul>
+
+<h3>Groupes</h3>
+
+{% if current_tour.groupes|length>0 %}
+
+<ul>
+    {% for groupe in current_tour.groupes %}
+          <li><a href="/admin/groupe/{{ groupe.id }}">Groupe {{ groupe.code }}</a>
+             {% if not groupe.has_resultats %}
+                 <b>Sans résultats</b> ({{ groupe.joueurs|length }} joueurs)
+                {% elif not groupe.is_validated %}
+                    <b>Non-validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+             {% elif groupe.is_validated %}
+                  <b>Validé</b> ({{groupe.joueurs|length }} joueurs, {{ groupe.parties|length }} parties)
+               {% endif %}
+           </li>
+       {% else %}
+           Aucun groupe.
+        {% endfor %}
+
+
+    </ul>
+    {% endif %}
+
+<h1> Tours restant </h1><Table><tr><td>Label</td><td>Groupes</td><td>Joueurs</td><td>Validée ?</td><td>resultats ?</td></tr>
+{% for tour in not_current_tours %}
+
+    <tr><td>{{ tour.label }} </td><td> {{tour.groupes|length }}</td><td>
+        {% if tour.groupes|length > 0 %}
+        {% for groupe in tour.groupes %}
+
+    {{groupe.joueurs|length  }} </td><td>{{ groupe.is_validated }}</td><td>{{ groupe.has_resultats }}
+
+</td><td></td>
+{% endfor %}
+</tr>
+    {% endif %}
+    {% if tour.groupes|length == 0 %}
+        <form method="POST" action="/admin/{{ edition.id }}/tour/{{tour.id}}/create">
+        <button type="submit">Creer les groupes</button>
+    </form>
+    {% endif %}
+
+
+{% endfor %}
+</Table>
+
 </body>
 </html>
