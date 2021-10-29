@@ -59,7 +59,7 @@
     </table>
 </ul>
 
-{% if not groupe.has_resulats %}
+{% if groupe.has_resultats %}
 <h2>Résultats</h2>
     {% if not groupe.is_validated %}
     <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
@@ -134,8 +134,18 @@
 
         {% endfor %}
     </ul>
+    {% else %}
+     <form method="POST" action="/admin/groupe/{{groupe.id}}/delete">
+        <button type="submit">Supprimer le groupe</button>
+    </form>
     {% endif %}
 
+
+
+<form method="POST" action="/admin/groupe/{{groupe.id}}/push_resultats">
+    <textarea name="eliminations_json"> </textarea>
+        <button type="submit">Pousser les résultats</button>
+    </form>
     
 </body>
 

@@ -70,7 +70,7 @@ class Edition(Base):
     config = Column(String)
     tours = relationship("Tour", back_populates="edition")
 
-    joueurs_inscrits = relationship('Inscription',  back_populates="edition")
+    inscriptions = relationship('Inscription', back_populates="edition")
     arbitres = relationship('Arbitre', back_populates="edition")
 
 
@@ -118,10 +118,10 @@ class Inscription(Base):
     __tablename__ = "inscription"
     id = Column(Integer, primary_key=True)
     edition_id = Column(Integer, ForeignKey('edition.id'))
+    edition = relationship('Edition', back_populates="inscriptions")
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
+    joueur = relationship("Joueur", back_populates="inscriptions")
     inscrit_le = Column(DateTime)
-
-    edition = relationship('Edition', back_populates="joueurs_inscrits")
 
 
 class Joueur(Base):
@@ -138,9 +138,11 @@ class Joueur(Base):
         secondary=groupe_joueur_table,
         back_populates="joueurs")
     classements_parties = relationship("ClassementPartie", back_populates="joueur")
-    
+
     eliminators = relationship("Elimination", back_populates="eliminator", foreign_keys='Elimination.eliminator_id')
     eliminateds = relationship("Elimination", back_populates="eliminated", foreign_keys='Elimination.eliminated_id')
+
+    inscriptions = relationship("Inscription", back_populates="joueur")
 
 
 class Partie(Base):
@@ -173,44 +175,39 @@ class Tour(Base):
 
 
 # Routing
-@app.route('/group/results', methods=['POST'])
-def referee_results():
-    payload = request.json
-    parse_group_result(payload)
-    return jsonify({"success": True})
-
-
 @app.route("/admin", methods=['GET'])
 def http_get_admin():
     edition = get_current_edition()
-    current_tour = get_current_tour_by_edition(edition)
-    classements = get_classements(edition=edition)
-    return render_template("index.html", edition=edition, current_tour_code=current_tour.code, classements=classements)
+    return redirect(f"/admin/edition/{edition.id}")
+
 
 @app.route("/admin/edition/<edition_id>", methods=['GET'])
 def http_get_admin_edition(edition_id):
     edition = get_edition_by_id(edition_id)
-    return render_template("index.html", edition=edition, current_tour_code=None    )
+    classements = get_classements(edition=edition)
+    return render_template("edition.html", edition=edition, current_tour_code=None, classements=classements)
+
 
 @app.route("/admin/edition/<edition_id>/init", methods=['POST'])
 def http_get_admin_edition_init(edition_id):
     edition = get_edition_by_id(edition_id)
     init_edition(edition)
-    return render_template("index.html", edition=edition)
+    return render_template("edition.html", edition=edition)
+
 
 @app.route("/admin/edition/<edition_id>/delete_tours", methods=['POST'])
 def http_get_admin_edition_delete_tour(edition_id):
     edition = get_edition_by_id(edition_id)
-    db.session.query(Tour).filter(Tour.edition==edition).delete()
+    db.session.query(Tour).filter(Tour.edition == edition).delete()
     db.session.commit()
-    return render_template("index.html", edition=edition)
+    return render_template("edition.html", edition=edition)
 
 
 @app.route("/admin/tour/<tour_id>/init", methods=['POST'])
 def http_get_admin_tour_init(tour_id):
     tour = get_tour_by_id(tour_id)
     init_tour(tour)
-    return render_template("index.html", edition=tour.edition)
+    return render_template("edition.html", edition=tour.edition)
 
 
 @app.route("/admin/groupe/<groupe_id>", methods=['GET'])
@@ -218,17 +215,42 @@ def http_get_admin_groupe(groupe_id):
     edition = get_current_edition()
     tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
-
     return render_template("groupe.html", edition=edition, tour=tour, groupe=groupe)
+
+
+@app.route("/admin/groupe/<groupe_id>/delete", methods=['POST'])
+def http_get_admin_groupe_delete(groupe_id):
+    groupe = get_groupe_by_id(groupe_id)
+    edition_id = groupe.tour.edition.id
+    groupe.joueurs.clear()
+    db.session.delete(groupe)
+    db.session.commit()
+    return redirect(f"/admin/edition/{edition_id}")
+
+
+@app.route("/admin/groupe/<groupe_id>/push_resultats", methods=['POST'])
+def http_get_admin_groupe_push_resultats(groupe_id):
+    eliminations = json.loads(request.form.get("eliminations_json"))
+    groupe = get_groupe_by_id(groupe_id)
+    parse_group_result(eliminations, groupe)
+    return redirect(f"/admin/edition/{groupe.tour.edition.id}")
+
+
+@app.route('/group/results', methods=['POST'])
+def referee_results():
+    payload = request.json
+    parse_group_result(payload)
+    return jsonify({"success": True})
+
 
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
 def http_post_admin_groupe_validate(groupe_id):
     edition = get_current_edition()
-    tour = get_current_tour_by_edition(edition)
     groupe = get_groupe_by_id(groupe_id)
     groupe.is_validated = True
     db.session.commit()
     return redirect('/admin')
+
 
 @app.route("/admin/groupe/<groupe_id>/unvalidate", methods=['POST'])
 def http_post_admin_groupe_unvalidate(groupe_id):
@@ -250,9 +272,8 @@ def http_get_admin_partie(partie_id):
 def init_edition(edition):
     config = get_edition_config(edition)
 
-    if len(edition.tours)>0:
+    if len(edition.tours) > 0:
         raise Exception('Edition contient deja des tours')
-
 
     for idx, config_tour in enumerate(config['tours'], start=1):
         tour = Tour()
@@ -262,47 +283,47 @@ def init_edition(edition):
         tour.code = edition.code + 'T' + str(config_tour['ordre'])
         tour.is_termine = False
         tour.config = json.dumps(config_tour)
-    
-    db.session.add(tour)
+        db.session.add(tour)
+        db.session.flush()
+
     db.session.commit()
 
 
-
 def init_tour(tour):
-
     config_tour = json.loads(tour.config)
 
     if config_tour['composition'] == 'ALL':
-        joueurs = tour.edition.joueurs_inscrits.copy()
+        joueurs = [c.joueur for c in tour.edition.inscriptions]
     elif config_tour['composition'] == 'TOP-ABS-GENERAL':
-        joueurs = map(lambda c: c.joueur, get_classements(tour.edition))
-        joueurs.slice(config_tour['max_joueurs_par_groupe'])
+        joueurs = [c.joueur for c in get_classements(edition=tour.edition)]
+        joueurs = joueurs[:config_tour['max_joueurs_par_groupe']]
     else:
         raise Exception(f"composition {config_tour['composition']} invalide.")
 
-    listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'], config_tour['algo'] == 'ESCARGOT')
+    listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'],
+                                          config_tour['algo'] == 'ESCARGOT')
 
     arbitres_restants = tour.edition.arbitres.copy()
 
     i = 1
     for liste in listes_joueurs:
         groupe = Groupe()
+        groupe.tour = tour
         groupe.code = tour.code + 'G' + str(i)
         groupe.is_validated = False
         groupe.has_resultats = False
-        
 
-        if len(arbitres_restants)==0:
+        if len(arbitres_restants) == 0:
             raise Exception("Plus d'arbitre disponible.")
 
-        arbitre = arbitres_restants.pop()
-
-        groupe.arbitre = arbitre
+        groupe.arbitre = arbitres_restants.pop()
 
         for joueur in liste:
             groupe.joueurs.append(joueur)
-        
-        tour.groupes.append(groupe)
+
+        db.session.add(groupe)
+        db.session.flush()
+
         i += 1
 
     db.session.commit()
@@ -331,10 +352,11 @@ def get_current_edition():
 
 
 def get_edition_by_id(edition_id):
-    return db.session.query(Edition).filter(Edition.id==edition_id).first()
+    return db.session.query(Edition).filter(Edition.id == edition_id).first()
+
 
 def get_tour_by_id(tour_id):
-    return db.session.query(Tour).filter(Tour.id==tour_id).first()
+    return db.session.query(Tour).filter(Tour.id == tour_id).first()
 
 
 def get_current_tour_by_edition(edition):
@@ -370,47 +392,56 @@ def calcul_points(rang, nb_kills, comptage):
             break
     return points
 
+
 def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
-    
     query = db.session.query(
-            Joueur,
-            func.sum(ClassementPartie.nb_points).label('nb_points'),
-            func.sum(ClassementPartie.nb_morts).label('nb_morts'),
-            func.sum(ClassementPartie.nb_kills).label('nb_kills')
-            ).filter( 
-            Tour.edition_id == Edition.id,
-            Groupe.tour_id == Tour.id,
-            Partie.groupe_id == Groupe.id,
-            ClassementPartie.partie_id == Partie.id,
-            Groupe.is_validated == True,
-            groupe_joueur_table.c.groupe_id == Groupe.id,
-            Joueur.id == groupe_joueur_table.c.joueur_id,
-            ClassementPartie.joueur_id == Joueur.id,
-            ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
-    if (edition): query.filter(Edition.id == edition.id)
-    if (tour): query.filter(Tour.id == tour.id)
-    if (groupe): query.filter(Groupe.id == groupe.id)
-    if (partie): query.filter(Partie.id == partie.id)
-    if (joueur): query.filter(Joueur.id == joueur.id)
-                
+        Joueur,
+        func.sum(ClassementPartie.nb_points).label('nb_points'),
+        func.sum(ClassementPartie.nb_morts).label('nb_morts'),
+        func.sum(ClassementPartie.nb_kills).label('nb_kills')
+    ).filter(
+        Tour.edition_id == edition.id,
+        Groupe.tour_id == Tour.id,
+        Partie.groupe_id == Groupe.id,
+        ClassementPartie.partie_id == Partie.id,
+        Groupe.is_validated == True,
+        groupe_joueur_table.c.groupe_id == Groupe.id,
+        Joueur.id == groupe_joueur_table.c.joueur_id,
+        ClassementPartie.joueur_id == Joueur.id,
+    ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
+    if edition: query.filter(Edition.id == edition.id)
+    if tour: query.filter(Tour.id == tour.id)
+    if groupe: query.filter(Groupe.id == groupe.id)
+    if partie: query.filter(Partie.id == partie.id)
+    if joueur: query.filter(Joueur.id == joueur.id)
+
+    # from sqlalchemy.dialects import mysql
+    # sql = query.compile(dialect=mysql.dialect());
+    sql = str(query);
+
     res = query.all()
 
     return res
+
 
 def get_edition_config(edition):
     print(edition.config)
     return json.loads(edition.config)
 
 
-def parse_group_result(payload):
-    edition = get_current_edition()
+def parse_group_result(payload, groupe=False):
+    if not groupe:
+        edition = get_current_edition()
+    else:
+        edition = groupe.tour.edition
     tour = get_current_tour_by_edition(edition)
     print(f"Edition: {edition.code}, Tour: {tour.code}")
     print(f"Arbitre epic_id: {payload['referee_epic_id']}")
     joueur_arbitre = get_joueur_by_epic_id(payload['referee_epic_id'])
     arbitre = get_arbitre_by_joueur_and_edition(joueur_arbitre, edition)
     print(f"Arbitre : {joueur_arbitre.pseudo}")
-    groupe = get_group_by_arbitre_and_tour(arbitre, tour)
+    if not groupe:
+        groupe = get_group_by_arbitre_and_tour(arbitre, tour)
     print(f"Groupe: {groupe.id} {groupe.code}")
     if groupe.is_validated:
         print("Groupe déja validé")
@@ -502,7 +533,7 @@ def parse_group_result(payload):
     db.session.query(Partie).filter(Partie.groupe_id == groupe.id).delete(synchronize_session=False)
     db.session.commit()
 
-    config = get_config(tour)
+    config = get_edition_config(tour.edition)
     print(parties)
     ordre = 0
     for p in parties:
