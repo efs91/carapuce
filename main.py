@@ -138,6 +138,7 @@ class Joueur(Base):
         secondary=groupe_joueur_table,
         back_populates="joueurs")
     classements_parties = relationship("ClassementPartie", back_populates="joueur")
+    
     eliminators = relationship("Elimination", back_populates="eliminator", foreign_keys='Elimination.eliminator_id')
     eliminateds = relationship("Elimination", back_populates="eliminated", foreign_keys='Elimination.eliminated_id')
 
@@ -274,7 +275,7 @@ def init_tour(tour):
     if config_tour['composition'] == 'ALL':
         joueurs = tour.edition.joueurs_inscrits.copy()
     elif config_tour['composition'] == 'TOP-ABS-GENERAL':
-        joueurs = map(lambda c: c.joueur, get_classements(edition))
+        joueurs = map(lambda c: c.joueur, get_classements(tour.edition))
         joueurs.slice(config_tour['max_joueurs_par_groupe'])
     else:
         raise Exception(f"composition {config_tour['composition']} invalide.")
@@ -288,7 +289,7 @@ def init_tour(tour):
         groupe = Groupe()
         groupe.code = tour.code + 'G' + str(i)
         groupe.is_validated = False
-        groupe.has_resulats = False
+        groupe.has_resultats = False
         
 
         if len(arbitres_restants)==0:
