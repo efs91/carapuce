@@ -34,6 +34,7 @@ class Arbitre(Base):
     id = Column(Integer, primary_key=True)
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     edition_id = Column(Integer, ForeignKey('edition.id'))
+    edition = relationship("Arbitre", back_populates="arbitres")
 
 
 class ClassementGroupe(Base):
@@ -68,6 +69,9 @@ class Edition(Base):
     fin_le = Column(DateTime)
     config = Column(String)
     tours = relationship("Tour", back_populates="edition")
+
+    joueurs_inscrits = relationship('Inscription',  back_populates="edition")
+    arbitres = relationship('Arbitre', back_populates="edition")
 
 
 class Elimination(Base):
@@ -116,6 +120,8 @@ class Inscription(Base):
     edition_id = Column(Integer, ForeignKey('edition.id'))
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     inscrit_le = Column(DateTime)
+
+    edition = relationship('Edition', back_populates="joueurs_inscrits")
 
 
 class Joueur(Base):
@@ -215,6 +221,46 @@ def http_get_admin_partie(partie_id):
 
 
 # Fonctions
+def create_tour(edition, config_tour):
+
+    if config_tour['composition'] == 'ALL':
+        joueurs = edition.joueurs_inscrits
+    elif config_tour['composition'] == 'TOP-ABS-GENERAL':
+        joueurs = map(lambda c: c.joueur, get_classements(edition))
+        joueurs.slice(config_tour['max_joueurs_par_groupe'])
+    else:
+        raise Exception(f"composition {config_tour['composition']} invalide.")
+
+    listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'], config_tour['algo'] == 'ESCARGOT')
+
+    tour = Tour()
+    tour.edition = edition
+    tour.label = config_tour['label']
+    tour.code = edition.code + 'T' + config_tour['ordre']
+    tour.is_termine = False
+
+    arbitres_restants = edition.arbitres.copy()
+
+    i = 1
+    for liste in listes_joueurs:
+        groupe = Groupe()
+        groupe.code = tour.code + 'G' + i
+        groupe.is_validated = False
+        for joueur in liste:
+            groupe.joueurs.append(joueur)
+        arbitre = arbitres_restants.pop()
+        if not arbitre:
+            raise Exception("Plus d'arbitre disponible.")
+        groupe.arbitre = arbitre
+        i += 1
+        tour.groupes.append(groupe)
+
+    db.session.add(tour)
+    db.session.commit()
+
+    return tour
+
+
 def get_composition_tour(liste_joueurs, max_joueurs_par_groupe, is_escargot):
     nb_joueurs = len(liste_joueurs)
     nb_groupes_pleins = floor(nb_joueurs / max_joueurs_par_groupe)
@@ -271,7 +317,7 @@ def calcul_points(rang, nb_kills, comptage):
 def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
     
     query = db.session.query(
-            Joueur.pseudo, 
+            Joueur.label('joueur'),
             func.sum(ClassementPartie.nb_points).label('nb_points'),
             func.sum(ClassementPartie.nb_morts).label('nb_morts'),
             func.sum(ClassementPartie.nb_kills).label('nb_kills')
