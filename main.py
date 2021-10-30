@@ -326,13 +326,12 @@ def init_tour(tour):
 
     if config_tour['composition'] == 'ALL':
         joueurs = [c.joueur for c in tour.edition.inscriptions]
+        random.shuffle(joueurs)
     elif config_tour['composition'] == 'TOP-ABS-GENERAL':
-        joueurs = [c.joueur for c in get_classements(edition=tour.edition)]
+        joueurs = [c.Joueur for c in get_classements(edition=tour.edition)]
         joueurs = joueurs[:config_tour['max_joueurs_par_groupe']]
     else:
         raise Exception(f"composition {config_tour['composition']} invalide.")
-
-    random.shuffle(joueurs)
 
     listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'],
                                           config_tour['algo'] == 'ESCARGOT')
