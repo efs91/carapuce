@@ -37,6 +37,8 @@ class Arbitre(Base):
     edition_id = Column(Integer, ForeignKey('edition.id'))
     edition = relationship("Edition", back_populates="arbitres")
 
+    groupes = relationship('Groupe', back_populates="arbitre")
+
 
 class ClassementGroupe(Base):
     __tablename__ = "classement_groupe"
@@ -103,6 +105,7 @@ class Groupe(Base):
     tour = relationship("Tour", back_populates="groupes")
     code = Column(String)
     arbitre_id = Column(Integer, ForeignKey('arbitre.id'))
+    arbitre = relationship('Arbitre', back_populates="groupes")
     debut_le = Column(DateTime)
     fin_le = Column(DateTime)
     has_resultats = Column(Boolean)
