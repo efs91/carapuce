@@ -49,8 +49,8 @@
                 {{ j.epic_id }}
             </td>
             <td>
-                <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
-                    <button type="submit"></button>
+                <form method="POST" action="/admin/groupe/{{groupe.id}}/joueur/{{j.id}}/elimine">
+                    <button type="submit">Éliminer</button>
                 </form>
             </td>
         </tr>
@@ -64,6 +64,10 @@
     {% if not groupe.is_validated %}
     <form method="POST" action="/admin/groupe/{{groupe.id}}/validate">
         <button type="submit">Valider les résultats</button>
+    </form>
+
+    <form method="POST" action="/admin/groupe/{{groupe.id}}/delete_classements">
+        <button type="submit">Supprimer les résultats</button>
     </form>
     {% else %}
     

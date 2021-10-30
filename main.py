@@ -77,6 +77,8 @@ class Edition(Base):
 class Elimination(Base):
     __tablename__ = "elimination"
     id = Column(Integer, primary_key=True)
+    groupe_id = Column(Integer, ForeignKey('groupe.id'))
+    groupe = relationship("Groupe", back_populates="eliminations")
     partie_id = Column(Integer, ForeignKey('partie.id'))
     partie = relationship("Partie", back_populates="eliminations")
     eliminated_id = Column(Integer, ForeignKey('joueur.id'))
@@ -112,6 +114,7 @@ class Groupe(Base):
 
     parties = relationship("Partie", back_populates="groupe")
     classements = relationship("ClassementGroupe", back_populates="groupe")
+    eliminations = relationship("Elimination", back_populates="groupe")
 
 
 class Inscription(Base):
@@ -122,6 +125,8 @@ class Inscription(Base):
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     joueur = relationship("Joueur", back_populates="inscriptions")
     inscrit_le = Column(DateTime)
+
+    is_elimine = Column(Boolean)
 
 
 class Joueur(Base):
@@ -195,6 +200,14 @@ def http_get_admin_edition_init(edition_id):
     return render_template("edition.html", edition=edition)
 
 
+@app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
+def http_get_admin_joueur_elimine(groupe_id, joueur_id):
+    groupe = get_groupe_by_id(groupe_id)
+    joueur = get_joueur_by_id(joueur_id)
+    elimine_joueur(groupe, joueur)
+    return redirect(f"/admin/groupe/{groupe.id}")
+
+
 @app.route("/admin/edition/<edition_id>/delete_tours", methods=['POST'])
 def http_get_admin_edition_delete_tour(edition_id):
     edition = get_edition_by_id(edition_id)
@@ -224,6 +237,21 @@ def http_get_admin_groupe_delete(groupe_id):
     edition_id = groupe.tour.edition.id
     groupe.joueurs.clear()
     db.session.delete(groupe)
+    db.session.commit()
+    return redirect(f"/admin/edition/{edition_id}")
+
+
+@app.route("/admin/groupe/<groupe_id>/delete_classements", methods=['POST'])
+def http_get_admin_groupe_delete_classements(groupe_id):
+    groupe = get_groupe_by_id(groupe_id)
+    edition_id = groupe.tour.edition.id
+
+    db.session.query(Elimination).filter(Elimination.partie_id == Partie.id, Partie.groupe_id == groupe.id).delete(
+        synchronize_session=False)
+    db.session.query(ClassementPartie).filter(ClassementPartie.partie_id == Partie.id,
+                                              Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    db.session.query(Partie).filter(Partie.groupe_id == groupe.id).delete(synchronize_session=False)
+    groupe.has_resultats = False;
     db.session.commit()
     return redirect(f"/admin/edition/{edition_id}")
 
@@ -313,10 +341,11 @@ def init_tour(tour):
         groupe.is_validated = False
         groupe.has_resultats = False
 
-        if len(arbitres_restants) == 0:
+        if len(arbitres_restants) == 0 and config_tour['nb_arbitres_par_groupe'] > 0:
             raise Exception("Plus d'arbitre disponible.")
 
-        groupe.arbitre = arbitres_restants.pop()
+        if config_tour['nb_arbitres_par_groupe'] > 0:
+            groupe.arbitre = arbitres_restants.pop()
 
         for joueur in liste:
             groupe.joueurs.append(joueur)
@@ -384,6 +413,14 @@ def get_joueur_by_epic_id(epic_id):
     return db.session.query(Joueur).filter(Joueur.epic_id == epic_id.upper()).first()
 
 
+def get_joueur_by_id(joueur_id):
+    return db.session.query(Joueur).filter(Joueur.id == joueur_id).first()
+
+
+def get_inscription_by_edition_and_joueur(edition, joueur):
+    return db.session.query(Inscription).filter(Inscription.edition == edition, Inscription.joueur == joueur).first()
+
+
 def calcul_points(rang, nb_kills, comptage):
     points = min(nb_kills, comptage['max_kills']) * comptage['points_par_kill']
     for top in comptage['points_par_tops']:
@@ -391,6 +428,12 @@ def calcul_points(rang, nb_kills, comptage):
             points += comptage['points_par_tops'][top]
             break
     return points
+
+
+def elimine_joueur(groupe, joueur):
+    inscription = get_inscription_by_edition_and_joueur(groupe.tour.edition, joueur)
+    inscription.is_elimine = True
+    db.session.commit()
 
 
 def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
@@ -437,9 +480,17 @@ def parse_group_result(payload, groupe=False):
     tour = get_current_tour_by_edition(edition)
     print(f"Edition: {edition.code}, Tour: {tour.code}")
     print(f"Arbitre epic_id: {payload['referee_epic_id']}")
-    joueur_arbitre = get_joueur_by_epic_id(payload['referee_epic_id'])
-    arbitre = get_arbitre_by_joueur_and_edition(joueur_arbitre, edition)
-    print(f"Arbitre : {joueur_arbitre.pseudo}")
+
+    has_arbitre = False
+    if not len(payload['referee_epic_id']) == 0:
+        joueur_arbitre = get_joueur_by_epic_id(payload['referee_epic_id'])
+        arbitre = get_arbitre_by_joueur_and_edition(joueur_arbitre, edition)
+        print(f"Arbitre : {joueur_arbitre.pseudo}")
+        has_arbitre = True
+
+    if not has_arbitre and not groupe:
+        raise Exception("Impossible de determiner le groupe (pas d'arbitre, pas de groupe).")
+
     if not groupe:
         groupe = get_group_by_arbitre_and_tour(arbitre, tour)
     print(f"Groupe: {groupe.id} {groupe.code}")
@@ -463,7 +514,7 @@ def parse_group_result(payload, groupe=False):
 
     for elim in payload['eliminations']:
 
-        if elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
+        if has_arbitre and elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
             if elim['eliminator'] != payload['referee_epic_id']:
                 print(f"{lookup[elim['eliminator']].pseudo} à tué l'arbitre !")
                 continue
@@ -504,9 +555,15 @@ def parse_group_result(payload, groupe=False):
             })
             current_partie['joueurs_restant'].remove(elim['eliminated'])
 
-        if len(current_partie['joueurs_restant']) == 1:  # we have a winner !
+        real_restants = []
+        for epic_id in current_partie['joueurs_restant']:
+            joueur = get_joueur_by_epic_id(epic_id)
+            inscription = get_inscription_by_edition_and_joueur(edition, joueur)
+            if not inscription.is_elimine:
+                real_restants.append(joueur)
 
-            gagnant = lookup[current_partie['joueurs_restant'].pop()]
+        if len(real_restants) == 1:  # we have a winner !
+            gagnant = real_restants.pop()
 
             print(f"Joueur {gagnant.pseudo} a gagné la partie !")
             current_partie["classements_jeu"].append({
@@ -546,6 +603,7 @@ def parse_group_result(payload, groupe=False):
 
         for e in p['eliminations']:
             elimination = Elimination()
+            elimination.groupe = groupe
             elimination.partie = partie
             elimination.eliminator = e['eliminator']
             elimination.eliminated = e['eliminated']
