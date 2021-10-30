@@ -323,12 +323,15 @@ def init_edition(edition):
 
 def init_tour(tour):
     config_tour = json.loads(tour.config)
-
+    joueurs = []
     if config_tour['composition'] == 'ALL':
-        joueurs = [c.joueur for c in tour.edition.inscriptions]
+        for i in tour.edition.inscriptions:
+            if not i.is_elimine:
+                joueurs.append(i.joueur)
         random.shuffle(joueurs)
     elif config_tour['composition'] == 'TOP-ABS-GENERAL':
-        joueurs = [c.Joueur for c in get_classements(edition=tour.edition)]
+        for c in get_classements(edition=tour.edition):
+            joueurs.append(c.Joueur)
         joueurs = joueurs[:config_tour['max_joueurs_par_groupe']]
     else:
         raise Exception(f"composition {config_tour['composition']} invalide.")
