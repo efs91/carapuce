@@ -1,3 +1,4 @@
+import random
 from math import floor
 
 import flask
@@ -327,6 +328,8 @@ def init_tour(tour):
         joueurs = joueurs[:config_tour['max_joueurs_par_groupe']]
     else:
         raise Exception(f"composition {config_tour['composition']} invalide.")
+
+    random.shuffle(joueurs)
 
     listes_joueurs = get_composition_tour(joueurs, config_tour['max_joueurs_par_groupe'],
                                           config_tour['algo'] == 'ESCARGOT')
