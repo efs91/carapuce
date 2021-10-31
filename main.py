@@ -130,8 +130,8 @@ class Inscription(Base):
     joueur = relationship("Joueur", back_populates="inscriptions")
     inscrit_le = Column(DateTime)
     is_elimine = Column(Boolean)
-    is_confirme = Column(Boolean)
-    confirme_le = Column(DateTime)
+    is_participe = Column(Boolean)
+    participe_le = Column(DateTime)
 
 
 class Joueur(Base):
@@ -283,6 +283,7 @@ def referee_results():
     payload = request.json
     parse_group_result(payload)
     return jsonify({"success": True})
+
 
 @app.route('/admin/participation', methods=['POST'])
 def http_post_admin_participation():
@@ -475,29 +476,29 @@ def set_etat_participation(joueur, etat):
         raise Exception(f"Inscription introuvable")
 
     if etat == 'CONFIRME':
-        if inscription.is_confirme is null:
+        if inscription.is_participe is null:
             message += "Ta participation a bien été confirmée, merci."
-            inscription.confirme_le = datetime.now()
-            inscription.is_confirme = True
-        elif inscription.is_confirme:
-            message += f"Tu as déja confirmé ta participation le {inscription.confirme_le}"
+            inscription.participe_le = datetime.now()
+            inscription.is_participe = True
+        elif inscription.is_participe:
+            message += f"Tu as déja confirmé ta participation le {inscription.participe_le}"
         else:
-            message += f"Tu avais confirmé ta participation le {inscription.confirme_le}. Ton refus de participer à " \
+            message += f"Tu avais confirmé ta participation le {inscription.participe_le}. Ton refus de participer à " \
                        f"bien été enregistré. "
-            inscription.confirme_le = datetime.now()
-            inscription.is_confirme = True
+            inscription.participe_le = datetime.now()
+            inscription.is_participe = True
     elif etat == 'REFUSE':
-        if inscription.is_confirme is null:
+        if inscription.is_participe is null:
             message += "Ton refus de participer à bien été pris en compte, merci."
-            inscription.confirme_le = datetime.now()
-            inscription.is_confirme = False
-        elif inscription.is_confirme:
-            message += f"Tu as déja indiqué le {inscription.confirme_le} ton refus de participer."
+            inscription.participe_le = datetime.now()
+            inscription.is_participe = False
+        elif inscription.is_participe:
+            message += f"Tu as déja indiqué le {inscription.participe_le} ton refus de participer."
         else:
-            message += f"Tu avais indiqué le {inscription.confirme_le} ton refus de participer. Ta confirmation de " \
+            message += f"Tu avais indiqué le {inscription.participe_le} ton refus de participer. Ta confirmation de " \
                        f"participer à bien été enregistrée."
-            inscription.confirme_le = datetime.now()
-            inscription.is_confirme = False
+            inscription.participe_le = datetime.now()
+            inscription.is_participe = False
     else:
         raise Exception(f"Etat inconnu : {etat}")
 
