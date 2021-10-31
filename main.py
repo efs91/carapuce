@@ -208,7 +208,7 @@ def http_get_admin_edition_init(edition_id):
 @app.route("/admin/edition/<edition_id>/resultats", methods=['get'])
 def http_get_admin_edition_resultats(edition_id):
     edition = get_edition_by_id(edition_id)
-    classements = get_classements(edition=edition)
+    classements = get_classements(edition=edition, show_rangs=True)
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
 
@@ -452,7 +452,7 @@ def elimine_joueur(groupe, joueur):
     db.session.commit()
 
 
-def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None):
+def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False):
     query = db.session.query(
         Joueur,
         func.sum(ClassementPartie.nb_points).label('nb_points'),
@@ -480,7 +480,19 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
 
     res = query.all()
 
-    return res
+    if show_rangs:
+        rangs = [
+
+        ]
+        rang = 1
+        for classement in res:
+            rangs.append( dict({
+                "rang" : rang,
+                "classement": classement
+            }))
+            rang += 1
+
+    return rangs
 
 
 def get_edition_config(edition):
