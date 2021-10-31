@@ -184,6 +184,8 @@ class Tour(Base):
 
 
 # Routing
+
+
 @app.route("/admin", methods=['GET'])
 def http_get_admin():
     edition = get_current_edition()
@@ -202,6 +204,12 @@ def http_get_admin_edition_init(edition_id):
     edition = get_edition_by_id(edition_id)
     init_edition(edition)
     return render_template("edition.html", edition=edition)
+
+@app.route("/admin/edition/<edition_id>/resultats", methods=['get'])
+def http_get_admin_edition_resultats(edition_id):
+    edition = get_edition_by_id(edition_id)
+    classements = get_classements(edition=edition)
+    return render_template("edition_resultats.html", edition=edition, classements=classements)
 
 
 @app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
@@ -525,7 +533,7 @@ def parse_group_result(payload, groupe=False):
 
     for elim in payload['eliminations']:
 
-        print(f"{elim['eliminator']} -> {elim['eliminated']}")
+        print(f"{elim['timecode']} : {elim['eliminator']} -> {elim['eliminated']}------------------------------")
         if has_arbitre and elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
             if elim['eliminator'] != payload['referee_epic_id']:
                 print(f"{lookup[elim['eliminator']].pseudo} à tué l'arbitre !")

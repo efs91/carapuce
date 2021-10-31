@@ -13,6 +13,7 @@
         <button type="submit">Initialiser l'édition</button>
     </form>
     {% else %}
+    <a href="/admin/edition/{{edition.id}}/resultats">Afficher tous les résultats</a>
     <form method="POST" action="/admin/edition/{{edition.id}}/delete_tours">
         <button type="submit">Supprimer les tours</button>
     </form>

@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Résultats</title>
+</head>
+
+<body>
+<h1>{{ edition.label }}</h1>
+
+<h2>Classement général (temporaire)</h2>
+<ul>
+    <table>
+        <tr>
+            <th>Place</th>
+            <th>Pseudo</th>
+            <th>Nb kills</th>
+            <th>Nb morts</th>
+            <th>Nb points</th>
+        </tr>
+        {% for c in classements %}
+        <tr>
+            <td>{{c.rang}}</td>
+            <td>{{c.Joueur.pseudo}}</td>
+            <td>{{c.nb_kills}}</td>
+            <td>{{c.nb_morts}}</td>
+            <td>{{c.nb_points}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</ul>
+
+
+<ul>
+    {% for tour in edition.tours %}
+    <li> <h2>{{tour.label}}</h2>
+        {% if tour.groupes|length>0 %}
+
+        <ul>
+            {% for groupe in tour.groupes %}
+            <li>
+                <h2>Groupe {{ groupe.code }}</h2>
+                <ul>
+                    {% for partie in groupe.parties %}
+                    <h2>partie {{ partie.ordre }}: </h2>
+
+                    <h3>Classement</h3>
+                    <ul>
+                        <table>
+                            <tr>
+                                <th>Place</th>
+                                <th>Pseudo</th>
+                                <th>Nb kills</th>
+                                <th>Nb morts</th>
+                                <th>Nb points</th>
+                            </tr>
+                            {% for c in partie.classements %}
+                            <tr>
+                                <td>{{c.rang_jeu}}</td>
+                                <td>{{c.joueur.pseudo}}</td>
+                                <td>{{c.nb_kills}}</td>
+                                <td>{{c.nb_morts}}</td>
+                                <td>{{c.nb_points}}</td>
+                            </tr>
+                            {% endfor %}
+
+                        </table>
+                    </ul>
+                    <h3>Éliminations</h3>
+                    <ul>
+                        <table>
+                            <tr>
+                                <th>
+                                    Temps
+                                </th>
+                                <th>
+                                    Élimination
+                                </th>
+                                <th>
+                                    Type
+                                </th>
+                            </tr>
+                            {% for e in partie.eliminations %}
+                            <tr>
+                                <td>
+                                    {{ e.timecode }}
+                                </td>
+                                <td>
+                                    {% if e.eliminator.epic_id == e.eliminated.epic_id %}
+                                    <span style="color:red">{{ e.eliminated.pseudo}}</span> s'est auto-éliminé(e).
+                                    {% else %}
+                                    {{ e.eliminator.pseudo}} a éliminé <span
+                                        style="color:red">{{ e.eliminated.pseudo}}</span>.
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ e.gun_type }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </table>
+                    </ul>
+
+                    {% endfor %}
+                </ul>
+
+            </li>
+            {% else %}
+            Aucun groupe.
+            {% endfor %}
+
+        </ul>
+        {% endif %}
+    </li>
+    {% else %}
+    Aucun tour.
+    {% endfor %}
+
+</ul>
+
+</body>
+
+</html>
