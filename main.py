@@ -468,7 +468,7 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
 
     # from sqlalchemy.dialects import mysql
     # sql = query.compile(dialect=mysql.dialect());
-    sql = str(query);
+    # sql = str(query);
 
     res = query.all()
 
@@ -487,6 +487,7 @@ def parse_group_result(payload, groupe=False):
         edition = groupe.tour.edition
     tour = get_current_tour_by_edition(edition)
     print(f"Edition: {edition.code}, Tour: {tour.code}")
+    payload['referee_epic_id'] = payload['referee_epic_id'].upper()
     print(f"Arbitre epic_id: {payload['referee_epic_id']}")
 
     has_arbitre = False
@@ -509,8 +510,10 @@ def parse_group_result(payload, groupe=False):
     lookup = {}
     nb_joueurs = 0
     for joueur in groupe.joueurs:
-        lookup[joueur.epic_id] = joueur
-        nb_joueurs += 1
+        inscription = get_inscription_by_edition_and_joueur(edition, joueur)
+        if not inscription.is_elimine:
+            lookup[joueur.epic_id] = joueur
+            nb_joueurs += 1
 
     parties = []
     current_partie = {
@@ -522,6 +525,7 @@ def parse_group_result(payload, groupe=False):
 
     for elim in payload['eliminations']:
 
+        print(f"{elim['eliminator']} -> {elim['eliminated']}")
         if has_arbitre and elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
             if elim['eliminator'] != payload['referee_epic_id']:
                 print(f"{lookup[elim['eliminator']].pseudo} à tué l'arbitre !")
@@ -543,24 +547,31 @@ def parse_group_result(payload, groupe=False):
         if elim['eliminator'] == elim['eliminated']:  # auto-éliminé
             print(f"Joueur {lu_ed.pseudo} auto-éliminé.")
             current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] += 1
-            current_partie["classements_jeu"].append({
+            classement = {
                 "joueur": lu_ed,
                 "rang": len(current_partie['joueurs_restant']),
                 "nb_kills": current_partie["stat_joueurs"][elim['eliminated']]['nb_kills'],
                 "nb_morts": 1
-            })
+            }
+            print(classement)
+            current_partie["classements_jeu"].append(classement)
             current_partie['joueurs_restant'].remove(elim['eliminated'])
 
         else:  # Elimination
             print(f"Joueur {lu_or.pseudo} à éliminé joueur {lu_ed.pseudo}.")
             current_partie["stat_joueurs"][elim['eliminated']]['nb_morts'] += 1
             current_partie["stat_joueurs"][elim['eliminator']]['nb_kills'] += 1
-            current_partie["classements_jeu"].append({
+
+            classement = {
                 "joueur": lookup[elim['eliminated']],
                 "rang": len(current_partie['joueurs_restant']),
                 "nb_kills": current_partie["stat_joueurs"][elim['eliminated']]['nb_kills'],
                 "nb_morts": 1
-            })
+            }
+            print(classement)
+            current_partie["classements_jeu"].append(classement)
+            if not elim['eliminated'] in current_partie['joueurs_restant']:
+                print(f" {elim['eliminated']} n'est pas dans les ids restantes")
             current_partie['joueurs_restant'].remove(elim['eliminated'])
 
         real_restants = []
@@ -574,12 +585,14 @@ def parse_group_result(payload, groupe=False):
             gagnant = real_restants.pop()
 
             print(f"Joueur {gagnant.pseudo} a gagné la partie !")
-            current_partie["classements_jeu"].append({
+            classement = {
                 "joueur": gagnant,
                 "rang": 1,
                 "nb_kills": current_partie["stat_joueurs"][gagnant.epic_id]['nb_kills'],
                 "nb_morts": 0
-            })
+            }
+            print(classement)
+            current_partie["classements_jeu"].append(classement)
 
             parties.append(current_partie)
 
