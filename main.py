@@ -285,7 +285,7 @@ def referee_results():
     return jsonify({"success": True})
 
 @app.route('/admin/participation', methods=['POST'])
-def referee_results():
+def http_post_admin_participation():
     payload = request.json
     joueur = get_joueur_by_discord_id(payload['discord_id'])
     message = set_etat_participation(joueur, payload['etat'])
