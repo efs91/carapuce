@@ -290,6 +290,8 @@ def http_post_admin_participation():
     payload = request.json
     print(payload)
     joueur = get_joueur_by_discord_id(payload['discord_id'])
+    if not joueur:
+        raise Exception(f"discord_id inconnue : {payload['discord_id']}")
     message = set_etat_participation(joueur, payload['etat'])
     return jsonify({"success": True, message: message})
 
