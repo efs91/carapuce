@@ -32,7 +32,7 @@
 
 <ul>
     {% for tour in edition.tours %}
-    <li> <a href="#T{{tour.id}}">{{tour.label}}</a></h2>
+    <li> <a href="#T{{tour.id}}">{{tour.label}}</a></li>
         {% if tour.groupes|length>0 %}
 
         <ul>

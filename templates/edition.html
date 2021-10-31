@@ -51,13 +51,12 @@
             <b>A suivre</b>
             {% endif %}
 
-            {%if tour.ordre==1 and tour.groupes|length == 0%}
+            {%if tour.groupes|length == 0%}
             <form method="POST" action="/admin/tour/{{tour.id}}/init">
                 <button type="submit">Créer les groupes</button>
             </form>
             {% endif %}
             {% if tour.groupes|length>0 %}
-            <h3>Groupes</h3>
             <ul>
                 {% for groupe in tour.groupes %}
                 <li><a href="/admin/groupe/{{ groupe.id }}">Groupe {{ groupe.code }}</a>

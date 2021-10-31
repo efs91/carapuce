@@ -129,8 +129,9 @@ class Inscription(Base):
     joueur_id = Column(Integer, ForeignKey('joueur.id'))
     joueur = relationship("Joueur", back_populates="inscriptions")
     inscrit_le = Column(DateTime)
-
     is_elimine = Column(Boolean)
+    is_confirme = Column(Boolean)
+    confirme_le = Column(DateTime)
 
 
 class Joueur(Base):
@@ -203,7 +204,8 @@ def http_get_admin_edition(edition_id):
 def http_get_admin_edition_init(edition_id):
     edition = get_edition_by_id(edition_id)
     init_edition(edition)
-    return render_template("edition.html", edition=edition)
+    return redirect(f"/admin/edition/{edition.id}")
+
 
 @app.route("/admin/edition/<edition_id>/resultats", methods=['get'])
 def http_get_admin_edition_resultats(edition_id):
@@ -225,14 +227,14 @@ def http_get_admin_edition_delete_tour(edition_id):
     edition = get_edition_by_id(edition_id)
     db.session.query(Tour).filter(Tour.edition == edition).delete()
     db.session.commit()
-    return render_template("edition.html", edition=edition)
+    return redirect(f"/admin/edition/{edition.id}")
 
 
 @app.route("/admin/tour/<tour_id>/init", methods=['POST'])
 def http_get_admin_tour_init(tour_id):
     tour = get_tour_by_id(tour_id)
     init_tour(tour)
-    return render_template("edition.html", edition=tour.edition)
+    return redirect(f"/admin/edition/{tour.edition.id}")
 
 
 @app.route("/admin/groupe/<groupe_id>", methods=['GET'])
@@ -281,6 +283,13 @@ def referee_results():
     payload = request.json
     parse_group_result(payload)
     return jsonify({"success": True})
+
+@app.route('/admin/participation', methods=['POST'])
+def referee_results():
+    payload = request.json
+    joueur = get_joueur_by_discord_id(payload['discord_id'])
+    message = set_etat_participation(joueur, payload['etat'])
+    return jsonify({"success": True, message: message})
 
 
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
@@ -429,6 +438,10 @@ def get_joueur_by_epic_id(epic_id):
     return db.session.query(Joueur).filter(Joueur.epic_id == epic_id.upper()).first()
 
 
+def get_joueur_by_discord_id(discord_id):
+    return db.session.query(Joueur).filter(Joueur.discord_id == discord_id).first()
+
+
 def get_joueur_by_id(joueur_id):
     return db.session.query(Joueur).filter(Joueur.id == joueur_id).first()
 
@@ -450,6 +463,47 @@ def elimine_joueur(groupe, joueur):
     inscription = get_inscription_by_edition_and_joueur(groupe.tour.edition, joueur)
     inscription.is_elimine = True
     db.session.commit()
+
+
+def set_etat_participation(joueur, etat):
+
+    edition = get_current_edition()
+    inscription = get_inscription_by_edition_and_joueur(edition, joueur)
+    message = ""
+
+    if not inscription:
+        raise Exception(f"Inscription introuvable")
+
+    if etat == 'CONFIRME':
+        if inscription.is_confirme is null:
+            message += "Ta participation a bien été confirmée, merci."
+            inscription.confirme_le = datetime.now()
+            inscription.is_confirme = True
+        elif inscription.is_confirme:
+            message += f"Tu as déja confirmé ta participation le {inscription.confirme_le}"
+        else:
+            message += f"Tu avais confirmé ta participation le {inscription.confirme_le}. Ton refus de participer à " \
+                       f"bien été enregistré. "
+            inscription.confirme_le = datetime.now()
+            inscription.is_confirme = True
+    elif etat == 'REFUSE':
+        if inscription.is_confirme is null:
+            message += "Ton refus de participer à bien été pris en compte, merci."
+            inscription.confirme_le = datetime.now()
+            inscription.is_confirme = False
+        elif inscription.is_confirme:
+            message += f"Tu as déja indiqué le {inscription.confirme_le} ton refus de participer."
+        else:
+            message += f"Tu avais indiqué le {inscription.confirme_le} ton refus de participer. Ta confirmation de " \
+                       f"participer à bien été enregistrée."
+            inscription.confirme_le = datetime.now()
+            inscription.is_confirme = False
+    else:
+        raise Exception(f"Etat inconnu : {etat}")
+
+    db.session.commit()
+
+    return message
 
 
 def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False):
