@@ -30,19 +30,48 @@
     </table>
 </ul>
 
-
 <ul>
     {% for tour in edition.tours %}
-    <li> <h2>{{tour.label}}</h2>
+    <li> <a href="#T{{tour.id}}">{{tour.label}}</a></h2>
         {% if tour.groupes|length>0 %}
 
         <ul>
             {% for groupe in tour.groupes %}
             <li>
-                <h2>Groupe {{ groupe.code }}</h2>
+                <a href="#G{{groupe.id}}">Groupe {{ groupe.code }}</a>
                 <ul>
                     {% for partie in groupe.parties %}
-                    <h2>partie {{ partie.ordre }}: </h2>
+                    <li><a href="#P{{partie.id}}">partie {{ partie.ordre }}: </a></li>
+                    {% endfor %}
+                </ul>
+
+            </li>
+            {% else %}
+            Aucun groupe.
+            {% endfor %}
+
+        </ul>
+        {% endif %}
+    </li>
+    {% else %}
+    Aucun tour.
+    {% endfor %}
+
+</ul>
+
+
+<ul>
+    {% for tour in edition.tours %}
+    <li> <h2 id="T{{tour.id}}">{{tour.label}}</h2>
+        {% if tour.groupes|length>0 %}
+
+        <ul>
+            {% for groupe in tour.groupes %}
+            <li>
+                <h2 id="G{{groupe.id}}">Groupe {{ groupe.code }}</h2>
+                <ul>
+                    {% for partie in groupe.parties %}
+                    <h2 id="P{{partie.id}}">partie {{ partie.ordre }}: </h2>
 
                     <h3>Classement</h3>
                     <ul>
