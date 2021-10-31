@@ -481,9 +481,7 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
     res = query.all()
 
     if show_rangs:
-        rangs = [
-
-        ]
+        rangs = []
         rang = 1
         for classement in res:
             rangs.append( dict({
@@ -491,8 +489,9 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
                 "classement": classement
             }))
             rang += 1
+        res = rangs
 
-    return rangs
+    return res
 
 
 def get_edition_config(edition):
