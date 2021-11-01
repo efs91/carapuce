@@ -213,6 +213,12 @@ def http_get_admin_edition_resultats(edition_id):
     classements = get_classements(edition=edition, show_rangs=True)
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
+@app.route("/admin/edition/<edition_id>/liste_attente", methods=['get'])
+def http_get_admin_edition_resultats(edition_id):
+    edition = get_edition_by_id(edition_id)
+    classements = get_classements_and_is_participe(edition=edition, show_rangs=True)
+    return render_template("edition_liste_attente.html", edition=edition, classements=classements)
+
 
 @app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
 def http_get_admin_joueur_elimine(groupe_id, joueur_id):
@@ -557,6 +563,52 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
         res = rangs
 
     return res
+
+
+
+def get_classements_and_is_participe(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False):
+    query = db.session.query(
+        Joueur,
+        func.sum(ClassementPartie.nb_points).label('nb_points'),
+        func.sum(ClassementPartie.nb_morts).label('nb_morts'),
+        func.sum(ClassementPartie.nb_kills).label('nb_kills')
+    ).filter(
+        Inscription.is_participe == True,
+        Tour.edition_id == edition.id,
+        Groupe.tour_id == Tour.id,
+        Partie.groupe_id == Groupe.id,
+        ClassementPartie.partie_id == Partie.id,
+        Groupe.is_validated == True,
+        groupe_joueur_table.c.groupe_id == Groupe.id,
+        Joueur.id == groupe_joueur_table.c.joueur_id,
+        ClassementPartie.joueur_id == Joueur.id,
+    ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
+    if edition: query.filter(Edition.id == edition.id)
+    if tour: query.filter(Tour.id == tour.id)
+    if groupe: query.filter(Groupe.id == groupe.id)
+    if partie: query.filter(Partie.id == partie.id)
+    if joueur: query.filter(Joueur.id == joueur.id)
+
+    # from sqlalchemy.dialects import mysql
+    # sql = query.compile(dialect=mysql.dialect());
+    # sql = str(query);
+
+    res = query.all()
+
+    if show_rangs:
+        rangs = []
+        rang = 1
+        for classement in res:
+            rangs.append( dict({
+                "rang" : rang,
+                "classement": classement
+            }))
+            rang += 1
+        res = rangs
+
+    return res
+
+
 
 
 def get_edition_config(edition):
