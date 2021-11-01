@@ -308,6 +308,8 @@ def http_post_admin_participation():
         return jsonify({"success": False, "message": str(err)})
 
 
+
+
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
 def http_post_admin_groupe_validate(groupe_id):
     edition = get_current_edition()
@@ -482,6 +484,7 @@ def elimine_joueur(groupe, joueur):
 
 
 def set_etat_participation(joueur, etat):
+
     edition = get_current_edition()
     inscription = get_inscription_by_edition_and_joueur(edition, joueur)
     message = ""
