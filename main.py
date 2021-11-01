@@ -217,7 +217,7 @@ def http_get_admin_edition_resultats(edition_id):
 @app.route("/admin/edition/<edition_id>/participations", methods=['get'])
 def http_get_admin_edition_participations(edition_id):
     edition = get_edition_by_id(edition_id)
-    classements = get_classements(edition=edition, show_rangs=True)
+    classements = get_classements(edition=edition, show_rangs=True, show_participations=True)
 
     return render_template("edition_participations.html", edition=edition, classements=classements)
 
@@ -525,7 +525,7 @@ def set_etat_participation(joueur, etat):
     return message
 
 
-def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False):
+def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False, show_participations=False):
     query = db.session.query(
         Joueur,
         func.sum(ClassementPartie.nb_points).label('nb_points'),
@@ -564,7 +564,7 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
         for classement in res:
             rangs.append(dict({
                 "rang": rang,
-                "participe": get_inscription_by_edition_and_joueur(edition, classement.Joueur).is_participe,
+                "participe": get_inscription_by_edition_and_joueur(edition, classement.Joueur).is_participe if show_participations else None,
                 "classement": classement
             }))
             rang += 1
