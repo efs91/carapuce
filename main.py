@@ -295,9 +295,9 @@ def http_post_admin_participation():
             raise Exception(f"discord_id inconnue : {payload['discord_id']}")
         message = set_etat_participation(joueur, payload['etat'])
         print(message)
-        return jsonify({"success": True, message: message})
+        return jsonify({"success": True, "message": message})
     except BaseException as err:
-        return jsonify({"success": False, message: str(err)})
+        return jsonify({"success": False, "message": str(err)})
 
 
 
@@ -485,27 +485,27 @@ def set_etat_participation(joueur, etat):
         raise Exception(f"Inscription introuvable")
 
     if etat == 'CONFIRME':
-        if inscription.is_participe is null:
+        if inscription.is_participe is None:
             message += "Ta participation a bien été confirmée, merci."
             inscription.participe_le = datetime.now()
             inscription.is_participe = True
         elif inscription.is_participe:
             message += f"Tu as déja confirmé ta participation le {inscription.participe_le}"
         else:
-            message += f"Tu avais confirmé ta participation le {inscription.participe_le}. Ton refus de participer à " \
-                       f"bien été enregistré. "
+            message += f"Tu avais indiqué le {inscription.participe_le} ton refus de participer. Ta confirmation de " \
+                        f"participer à bien été enregistrée."
             inscription.participe_le = datetime.now()
             inscription.is_participe = True
     elif etat == 'REFUSE':
-        if inscription.is_participe is null:
+        if inscription.is_participe is None:
             message += "Ton refus de participer à bien été pris en compte, merci."
             inscription.participe_le = datetime.now()
             inscription.is_participe = False
         elif inscription.is_participe:
-            message += f"Tu as déja indiqué le {inscription.participe_le} ton refus de participer."
+            message += f"Tu avais confirmé ta participation le {inscription.participe_le}. Ton refus de participer a " \
+                       f"bien été enregistré."
         else:
-            message += f"Tu avais indiqué le {inscription.participe_le} ton refus de participer. Ta confirmation de " \
-                       f"participer à bien été enregistrée."
+            message += f"Tu as déja indiqué le {inscription.participe_le} ton refus de participer."
             inscription.participe_le = datetime.now()
             inscription.is_participe = False
     else:
