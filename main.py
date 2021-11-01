@@ -493,12 +493,12 @@ def set_etat_participation(joueur, etat):
             message += f"Tu as déja confirmé ta participation le {inscription.participe_le}"
         else:
             message += f"Tu avais indiqué le {inscription.participe_le} ton refus de participer. Ta confirmation de " \
-                        f"participer à bien été enregistrée."
+                        f"participer a bien été enregistrée."
             inscription.participe_le = datetime.now()
             inscription.is_participe = True
     elif etat == 'REFUSE':
         if inscription.is_participe is None:
-            message += "Ton refus de participer à bien été pris en compte, merci."
+            message += "Ton refus de participer a bien été pris en compte, merci."
             inscription.participe_le = datetime.now()
             inscription.is_participe = False
         elif inscription.is_participe:
