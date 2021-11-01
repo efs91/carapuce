@@ -214,6 +214,14 @@ def http_get_admin_edition_resultats(edition_id):
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
 
+@app.route("/admin/edition/<edition_id>/participations", methods=['get'])
+def http_get_admin_edition_participations(edition_id):
+    edition = get_edition_by_id(edition_id)
+    classements = get_classements(edition=edition, show_rangs=True)
+
+    return render_template("edition_participations.html", edition=edition, classements=classements)
+
+
 @app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
 def http_get_admin_joueur_elimine(groupe_id, joueur_id):
     groupe = get_groupe_by_id(groupe_id)
@@ -298,8 +306,6 @@ def http_post_admin_participation():
         return jsonify({"success": True, "message": message})
     except BaseException as err:
         return jsonify({"success": False, "message": str(err)})
-
-
 
 
 @app.route("/admin/groupe/<groupe_id>/validate", methods=['POST'])
@@ -476,7 +482,6 @@ def elimine_joueur(groupe, joueur):
 
 
 def set_etat_participation(joueur, etat):
-
     edition = get_current_edition()
     inscription = get_inscription_by_edition_and_joueur(edition, joueur)
     message = ""
@@ -493,7 +498,7 @@ def set_etat_participation(joueur, etat):
             message += f"Tu as déja confirmé ta participation le {inscription.participe_le}"
         else:
             message += f"Tu avais indiqué le {inscription.participe_le} ton refus de participer. Ta confirmation de " \
-                        f"participer a bien été enregistrée."
+                       f"participer a bien été enregistrée."
             inscription.participe_le = datetime.now()
             inscription.is_participe = True
     elif etat == 'REFUSE':
@@ -533,11 +538,16 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
         Joueur.id == groupe_joueur_table.c.joueur_id,
         ClassementPartie.joueur_id == Joueur.id,
     ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
-    if edition: query.filter(Edition.id == edition.id)
-    if tour: query.filter(Tour.id == tour.id)
-    if groupe: query.filter(Groupe.id == groupe.id)
-    if partie: query.filter(Partie.id == partie.id)
-    if joueur: query.filter(Joueur.id == joueur.id)
+    if edition:
+        query.filter(Edition.id == edition.id)
+    if tour:
+        query.filter(Tour.id == tour.id)
+    if groupe:
+        query.filter(Groupe.id == groupe.id)
+    if partie:
+        query.filter(Partie.id == partie.id)
+    if joueur:
+        query.filter(Joueur.id == joueur.id)
 
     # from sqlalchemy.dialects import mysql
     # sql = query.compile(dialect=mysql.dialect());
@@ -549,8 +559,9 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
         rangs = []
         rang = 1
         for classement in res:
-            rangs.append( dict({
-                "rang" : rang,
+            rangs.append(dict({
+                "rang": rang,
+                "participe": get_inscription_by_edition_and_joueur(edition, classement.Joueur).is_participe,
                 "classement": classement
             }))
             rang += 1

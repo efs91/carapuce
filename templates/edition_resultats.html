@@ -82,6 +82,7 @@
                                 <th>Nb kills</th>
                                 <th>Nb morts</th>
                                 <th>Nb points</th>
+                                <th>Participe</th>
                             </tr>
                             {% for c in partie.classements %}
                             <tr>
@@ -90,6 +91,7 @@
                                 <td>{{c.nb_kills}}</td>
                                 <td>{{c.nb_morts}}</td>
                                 <td>{{c.nb_points}}</td>
+                                <td>{{c.is_participe}}</td>
                             </tr>
                             {% endfor %}
 

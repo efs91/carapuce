@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Résultats</title>
+</head>
+
+<body>
+<h1>{{ edition.label }}</h1>
+
+<h2>Participation à la finale</h2>
+<ul>
+    <table>
+        <tr>
+            <th>Place</th>
+            <th>Pseudo</th>
+            <th>Participe</th>
+        </tr>
+        {% for c in classements %}
+        <tr>
+            <td>{{c.rang}}</td>
+            <td>{{c.classement.Joueur.pseudo}}</td>
+            <td>{% if not c.participe != None %}
+                    ?
+                {% elif c.participe %}
+                    Oui
+                {% else %}
+                    Non
+                {% endif %}
+
+
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</ul>
+
+
+
+</body>
+
+</html>

@@ -13,31 +13,11 @@
         <button type="submit">Initialiser l'édition</button>
     </form>
     {% else %}
-    <a href="/admin/edition/{{edition.id}}/resultats">Afficher tous les résultats</a>
+    <a href="/admin/edition/{{edition.id}}/resultats">Voir les résultats</a>
+    <a href="/admin/edition/{{edition.id}}/participations">Voir les participations</a>
     <form method="POST" action="/admin/edition/{{edition.id}}/delete_tours">
         <button type="submit">Supprimer les tours</button>
     </form>
-    <h2>Classement général (temporaire)</h2>
-    <ul>
-        <table>
-            <tr>
-                <th>Place</th>
-                <th>Pseudo</th>
-                <th>Nb kills</th>
-                <th>Nb morts</th>
-                <th>Nb points</th>
-            </tr>
-            {% for c in classements %}
-            <tr>
-                <td>{{c.rang}}</td>
-                <td>{{c.Joueur.pseudo}}</td>
-                <td>{{c.nb_kills}}</td>
-                <td>{{c.nb_morts}}</td>
-                <td>{{c.nb_points}}</td>
-            </tr>
-            {% endfor %}
-        </table>
-    </ul>
 
     <h2>Tours</h2>
     <ul>
