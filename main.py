@@ -504,10 +504,11 @@ def set_etat_participation(joueur, etat):
         elif inscription.is_participe:
             message += f"Tu avais confirmé ta participation le {inscription.participe_le}. Ton refus de participer a " \
                        f"bien été enregistré."
-        else:
-            message += f"Tu as déja indiqué le {inscription.participe_le} ton refus de participer."
             inscription.participe_le = datetime.now()
             inscription.is_participe = False
+        else:
+            message += f"Tu as déja indiqué le {inscription.participe_le} ton refus de participer."
+
     else:
         raise Exception(f"Etat inconnu : {etat}")
 
