@@ -214,11 +214,6 @@ def http_get_admin_edition_resultats(edition_id):
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
 
-@app.route("/admin/edition/<edition_id>/liste_attente", methods=['get'])
-def http_get_admin_edition_resultats(edition_id):
-    edition = get_edition_by_id(edition_id)
-    classements = get_classements_and_is_participe(edition=edition, show_rangs=True)
-    return render_template("edition_liste_attente.html", edition=edition, classements=classements)
 
 
 @app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
