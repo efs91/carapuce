@@ -490,7 +490,7 @@ def set_etat_participation(joueur, etat):
     message = ""
 
     if not inscription:
-        raise Exception(f"Inscription introuvable")
+        return "Tu n'es pas inscris à cette finale."
 
     if etat == 'CONFIRME':
         if inscription.is_participe is None:
