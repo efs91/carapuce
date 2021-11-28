@@ -283,6 +283,7 @@ def http_get_admin_groupe_push_resultats(groupe_id):
 @app.route('/group/results', methods=['POST'])
 def referee_results():
     payload = request.json
+    tout_le_monde_est_la(payload)
     parse_group_result(payload)
     return jsonify({"success": True})
 
@@ -605,6 +606,72 @@ def get_classements_and_is_participe(edition=None, tour=None, groupe=None, parti
     return res
 
 
+def tout_le_monde_est_la(payload, groupe=False):
+
+    # Verifier si tout les eliminated et les eliminate sont dans la table inscription
+    # on affiche les ID trouvés en plus et les pseudos manquant.
+    # On met les pseudo manquand en elimine.
+
+    return 1
+
+
+def is_dans_la_base(epic_id):
+    return db.session.query(Joueur).filter(Joueur.epic_id == epic.id).first()
+
+
+def is_dans_le_groupe(groupe_id, joueur_id):
+    return db.session.query(Groupe).filter(Groupe.joueur.id == joueur_id, Groupe.id == groupe_id).first()
+
+
+def dans_quel_groupe(joueur_id, edition_id):
+    return db.session.query(Groupe).filter(Groupe.tour.edition_id == edition_id, Groupe.joueur.id == joueur_id).first()
+
+
+def verifie_epic_id(payload,groupe_id, edition_id):
+    flag = 0
+    epic_id_cherches = {}
+    for elim in payload['elimination']:
+        if elim['eliminator'] not in epic_id_cherches:
+            epic_id_cherches.append(elim['eliminator'])
+        if elim['eliminated'] not in epic_id_cherches:
+            epic_id_cherches.append(elim['eliminated'])
+    for epic_id_trouvee in epic_id_cherches:
+        joueur = get_joueur_by_id(epic_id_trouvee)
+        if not joueur:
+            cree_joueur_invalide(epic_id_trouvee)
+            joueur = get_joueur_by_id(epic_id_trouvee)
+    if not is_dans_le_groupe(groupe_id,joueur.id):
+        quel_groupe = dans_quel_groupe(joueur.id, edition_id)
+    return 1
+
+
+
+
+
+
+
+def cree_joueur_invalide(epic_id,groupe):
+    # Creer un joueur
+    joueur = Joueur()
+    joueur.epic_id = epic_id
+    joueur.pseudo = epic_id
+    joueur.is_valide = True
+    db.session.add(joueur)
+    db.session.flush()
+
+    # Creer une inscription avec l'ID
+    inscription = Inscription()
+    inscription.edition_id = groupe.tour.edition_id
+    inscription.joueur_id = joueur.id
+    inscription.inscrit_le = datetime()
+    db.session.add(inscription)
+    db.session.flush()
+
+
+    # rentrer le joueur dans le groupe
+    groupe.joueurs.append(joueur)
+
+    db.session.commit()
 
 
 def get_edition_config(edition):
@@ -641,7 +708,8 @@ def parse_group_result(payload, groupe=False):
 
     lookup = {}
     nb_joueurs = 0
-    for joueur in groupe.joueurs:
+
+   for joueur in groupe.joueurs:
         inscription = get_inscription_by_edition_and_joueur(edition, joueur)
         if not inscription.is_elimine:
             lookup[joueur.epic_id] = joueur
@@ -657,7 +725,10 @@ def parse_group_result(payload, groupe=False):
 
     for elim in payload['eliminations']:
 
+
+
         print(f"{elim['timecode']} : {elim['eliminator']} -> {elim['eliminated']}------------------------------")
+
         if has_arbitre and elim['eliminated'] == payload['referee_epic_id']:  # Arbitre
             if elim['eliminator'] != payload['referee_epic_id']:
                 print(f"{lookup[elim['eliminator']].pseudo} à tué l'arbitre !")
