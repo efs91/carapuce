@@ -25,7 +25,7 @@
     <ul>
 
         {% for tour in edition.tours %}
-            {% if old_phase != tour.phase %}<h3>{{tour.phase}}(<a href=f"/classments/edition/{{edition.id}}/phase/{{tour.phase}}">Résultat</a>)</h3>{% endif %}
+            {% if old_phase != tour.phase %}<h3>{{tour.phase}}(<a href="/admin/edition/{{edition.id}}/phase/{{tour.phase}}/resultats">Résultats</a>)</h3>{% endif %}
             {% set old_phase = tour.phase %}
         <li>{% if phase %}{{phase}} - {% endif %}{{tour.label}}
             {% if tour.is_termine %}
