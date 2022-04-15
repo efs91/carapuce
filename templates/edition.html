@@ -19,12 +19,12 @@
         <button type="submit">Supprimer les tours</button>
     </form>
 
-    {% old_phase = null %}
+    {% set old_phase = "toto" %}
     
     <h2>Tours</h2>
     <ul>
         {% if old_phase != phase %} {{phase}}(<a href=f"/classments/edition/{{edition.id}}/phase/{{phase}}">Résultat</a>){{endif}}
-        {% old_phase = phase %}
+        {% set old_phase = phase %}
         {% for tour in edition.tours %}
         <li>{% if phase %}{{phase}} - {% endif %}{{tour.label}}
             {% if tour.is_termine %}
