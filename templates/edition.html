@@ -6,7 +6,7 @@
 </head>
 
 <body>
-    <h1>{{ edition.label }}</h1>
+    <h1>{{ edition.label }}  {% if phase %} - {{phase}}{% endif %}</h1>
 
     {% if edition.tours|length == 0 %}
     <form method="POST" action="/admin/edition/{{edition.id}}/init">
@@ -22,7 +22,7 @@
     <h2>Tours</h2>
     <ul>
         {% for tour in edition.tours %}
-        <li> {{tour.label}}
+        <li>{% if phase %}{{phase}} - {% endif %}{{tour.label}}
             {% if tour.is_termine %}
             <b>Terminé</b> (<a href=f"/classments/tour/{{tour.id}}">Résultat</a>)
             {% elif tour.code==current_tour_code %}
