@@ -173,6 +173,7 @@ class Tour(Base):
     id = Column(Integer, primary_key=True)
     ordre = Column(Integer)
     code = Column(String)
+    phase = Column(String)
     label = Column(String)
     is_termine = Column(Boolean)
     edition_id = Column(Integer, ForeignKey('edition.id'))
@@ -198,6 +199,12 @@ def http_get_admin_edition(edition_id):
     edition = get_edition_by_id(edition_id)
     classements = get_classements(edition=edition)
     return render_template("edition.html", edition=edition, current_tour_code=None, classements=classements)
+
+@app.route("/admin/edition/<edition_id>/phase/<phase>", methods=['GET'])
+def http_get_admin_edition_phase(edition_id, phase):
+    edition = get_edition_by_id(edition_id)
+    classements = get_classements(edition=edition, phase=phase)
+    return render_template("edition.html", edition=edition, phase=None, current_tour_code=None, classements=classements)
 
 
 @app.route("/admin/edition/<edition_id>/init", methods=['POST'])
@@ -348,6 +355,7 @@ def init_edition(edition):
         tour.edition = edition
         tour.label = config_tour['label']
         tour.code = edition.code + 'T' + str(config_tour['ordre'])
+        tour.phase = config_tour['phase']
         tour.is_termine = False
         tour.config = json.dumps(config_tour)
         db.session.add(tour)
@@ -525,7 +533,7 @@ def set_etat_participation(joueur, etat):
     return message
 
 
-def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False, show_participations=False):
+def get_classements(edition=None, phase=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False, show_participations=False):
     query = db.session.query(
         Joueur,
         func.sum(ClassementPartie.nb_points).label('nb_points'),
@@ -543,6 +551,8 @@ def get_classements(edition=None, tour=None, groupe=None, partie=None, joueur=No
     ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
     if edition:
         query.filter(Edition.id == edition.id)
+    if phase:
+        query.filter(Tour.phase == phase)
     if tour:
         query.filter(Tour.id == tour.id)
     if groupe:
