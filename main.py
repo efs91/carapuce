@@ -221,7 +221,7 @@ def http_get_admin_edition_resultats(edition_id):
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
 @app.route("/admin/edition/<edition_id>/phase/<phase>/resultats", methods=['get'])
-def http_get_admin_edition_resultats(edition_id, phase):
+def http_get_admin_edition_phase_resultats(edition_id, phase):
     edition = get_edition_by_id(edition_id)
     classements = get_classements(edition=edition, phase=phase, show_rangs=True)
     return render_template("edition_resultats.html", edition=edition, phase=phase, classements=classements)
