@@ -12,7 +12,7 @@ from sqlalchemy.orm import relationship, declarative_base
 
 # Config
 HOST = "0.0.0.0"
-PORT = 5000
+PORT = 5001
 
 DB_HOST = "efs91.fr"
 DB_USER = "carapuce"
