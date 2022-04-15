@@ -220,6 +220,12 @@ def http_get_admin_edition_resultats(edition_id):
     classements = get_classements(edition=edition, show_rangs=True)
     return render_template("edition_resultats.html", edition=edition, classements=classements)
 
+@app.route("/admin/edition/<edition_id>/phase/<phase>/resultats", methods=['get'])
+def http_get_admin_edition_resultats(edition_id, phase):
+    edition = get_edition_by_id(edition_id)
+    classements = get_classements(edition=edition, phase=phase, show_rangs=True)
+    return render_template("edition_resultats.html", edition=edition, phase=phase, classements=classements)
+
 
 @app.route("/admin/edition/<edition_id>/participations", methods=['get'])
 def http_get_admin_edition_participations(edition_id):
@@ -227,7 +233,6 @@ def http_get_admin_edition_participations(edition_id):
     classements = get_classements(edition=edition, show_rangs=True, show_participations=True)
 
     return render_template("edition_participations.html", edition=edition, classements=classements)
-
 
 @app.route("/admin/groupe/<groupe_id>/joueur/<joueur_id>/elimine", methods=['POST'])
 def http_get_admin_joueur_elimine(groupe_id, joueur_id):
