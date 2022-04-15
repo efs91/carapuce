@@ -204,7 +204,7 @@ def http_get_admin_edition(edition_id):
 def http_get_admin_edition_phase(edition_id, phase):
     edition = get_edition_by_id(edition_id)
     classements = get_classements(edition=edition, phase=phase)
-    return render_template("edition.html", edition=edition, phase=None, current_tour_code=None, classements=classements)
+    return render_template("edition.html", edition=edition, phase=phase, current_tour_code=None, classements=classements)
 
 
 @app.route("/admin/edition/<edition_id>/init", methods=['POST'])
