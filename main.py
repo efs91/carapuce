@@ -539,12 +539,7 @@ def set_etat_participation(joueur, etat):
 
 
 def get_classements(edition=None, phase=None, tour=None, groupe=None, partie=None, joueur=None, show_rangs=False, show_participations=False):
-    query = db.session.query(
-        Joueur,
-        func.sum(ClassementPartie.nb_points).label('nb_points'),
-        func.sum(ClassementPartie.nb_morts).label('nb_morts'),
-        func.sum(ClassementPartie.nb_kills).label('nb_kills')
-    ).filter(
+    filters = [
         Tour.edition_id == edition.id,
         Groupe.tour_id == Tour.id,
         Partie.groupe_id == Groupe.id,
@@ -553,23 +548,22 @@ def get_classements(edition=None, phase=None, tour=None, groupe=None, partie=Non
         groupe_joueur_table.c.groupe_id == Groupe.id,
         Joueur.id == groupe_joueur_table.c.joueur_id,
         ClassementPartie.joueur_id == Joueur.id,
-    ).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
-    if edition:
-        query.filter(Edition.id == edition.id)
-    if phase:
-        query.filter(Tour.phase == phase)
-    if tour:
-        query.filter(Tour.id == tour.id)
-    if groupe:
-        query.filter(Groupe.id == groupe.id)
-    if partie:
-        query.filter(Partie.id == partie.id)
-    if joueur:
-        query.filter(Joueur.id == joueur.id)
+    ]
 
-    # from sqlalchemy.dialects import mysql
-    # sql = query.compile(dialect=mysql.dialect());
-    # sql = str(query);
+
+    if phase:
+        filters.append(Tour.phase == phase)
+    if tour:
+        filters.append(Tour.id == tour.id)
+    if groupe:
+        filters.append(Groupe.id == groupe.id)
+
+    query = db.session.query(
+        Joueur,
+        func.sum(ClassementPartie.nb_points).label('nb_points'),
+        func.sum(ClassementPartie.nb_morts).label('nb_morts'),
+        func.sum(ClassementPartie.nb_kills).label('nb_kills')
+    ).filter(*filters).group_by(Joueur.id).order_by(desc("nb_points"), asc("nb_morts"), desc("nb_kills"))
 
     res = query.all()
 
